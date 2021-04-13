@@ -14,6 +14,8 @@ library(RColorBrewer)
 library(scales)
 library(lattice)
 library(dplyr)
+library(ggplot2)
+library(plotly)
 
 # Download the data from https://data.cityofnewyork.us/api/views/3q43-55fe/rows.csv?accessType=DOWNLOAD
 # Alternate link: https://data.cityofnewyork.us/Social-Services/Rat-Sightings/3q43-55fe, click Export -> CSV
@@ -29,7 +31,7 @@ rat_sightings_sample <- rat_sightings[sample.int(nrow(rat_sightings), 10),]
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
-      plotOutput("zipViz", height = 200),
+      plotlyOutput("cityViz", height = 500),
     ),
     mainPanel(
       leafletOutput("map"),
@@ -56,8 +58,10 @@ server <- function(input, output, session) {
                                                               rat_sightings_sample$longitude)))
   })
   
-  output$zipViz <- renderPlot({
-    plot(rat_sightings_sample$Incident.Zip)
+  output$cityViz <- renderPlotly({
+      ggplotly(
+        ggplot(data=rat_sightings_sample %>% count(City), aes(x=City, y=n)) + geom_bar(stat="identity")
+      )
   })
   
 }
