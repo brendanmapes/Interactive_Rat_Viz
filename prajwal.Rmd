@@ -16,6 +16,8 @@ library(lattice)
 library(dplyr)
 library(ggplot2)
 library(plotly)
+library(data.table)
+library(lubridate)
 
 # Download the data from https://data.cityofnewyork.us/api/views/3q43-55fe/rows.csv?accessType=DOWNLOAD
 # Alternate link: https://data.cityofnewyork.us/Social-Services/Rat-Sightings/3q43-55fe, click Export -> CSV
@@ -31,7 +33,8 @@ rat_sightings_sample <- rat_sightings[sample.int(nrow(rat_sightings), 10),]
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
-      plotlyOutput("cityViz", height = 500),
+      plotlyOutput("cityViz", height = 300),
+      plotlyOutput("yearViz", height = 300),
     ),
     mainPanel(
       leafletOutput("map"),
@@ -64,7 +67,29 @@ server <- function(input, output, session) {
       )
   })
   
-}
+  created_date_sample <- data.table(rat_sightings_sample$Created.Date)
+  created_date_sample$dates <- parse_date_time(created_dt$V1, '%m/%d/%y %I:%M:%S %p')
+  plot_created_year <- data.frame(table(year(date(created_date_sample$dates))))
+  for (i in 2010:2021){
+    if ((i %in% plot_created_year$Var1)==FALSE) {
+      print(i)
+      tmp_df <- data.frame(toString(i), 0)
+      names(tmp_df) <- c('Var1','Freq')
+      plot_created_year <- rbind(plot_created_year, tmp_df)
+    }
+  }
+  plot_created_year$Var1 <- as.numeric(as.character(plot_created_year$Var1))
+  plot_created_year <- plot_created_year[order(plot_created_year$Var1),]
+  plot_created_year
+
+  output$yearViz <- renderPlotly({
+      ggplotly(
+        ggplot(data=plot_created_year, aes(x=Var1, y=Freq)) + geom_bar(stat="identity") + xlab("Year") + xlim(2010,2021)
+      )
+  })
+  
+
+  }
 shinyApp(ui = ui, server = server)
 ```
 
