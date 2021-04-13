@@ -15,7 +15,10 @@ library(scales)
 library(lattice)
 library(dplyr)
 
+# Download the data from https://data.cityofnewyork.us/api/views/3q43-55fe/rows.csv?accessType=DOWNLOAD
+# Alternate link: https://data.cityofnewyork.us/Social-Services/Rat-Sightings/3q43-55fe, click Export -> CSV
 rat_sightings <- read.csv("/Users/prajwal/Desktop/Columbia/Data Visualization/Group project/gp/data/Rat_Sightings.csv")
+
 rat_sightings$latitude <- rat_sightings$Latitude
 rat_sightings$longitude <- rat_sightings$Longitude
 rat_sightings$zipcode <- formatC(rat_sightings$`Incident Zip`, width=5, format="d", flag="0")
