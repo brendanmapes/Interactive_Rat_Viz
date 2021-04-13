@@ -21,16 +21,15 @@ library(dplyr)
 
 rat_sightings$latitude <- rat_sightings$Latitude
 rat_sightings$longitude <- rat_sightings$Longitude
-rat_sightings$zipcode <- formatC(rat_sightings$`Incident Zip`, width=5, format="d", flag="0")
 
-set.seed(100)
-zipdata <- rat_sightings[sample.int(nrow(rat_sightings), 10),]
+#set.seed(100)
+rat_sightings_sample <- rat_sightings[sample.int(nrow(rat_sightings), 10),]
 
 
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
-      "text"
+      plotOutput("zipViz", height = 200),
     ),
     mainPanel(
       leafletOutput("map"),
@@ -42,24 +41,35 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   # points <- eventReactive(input$recalc, {
-  #   cbind(zipdata$latitude, zipdata$longitude)
+  #   cbind(rat_sightings_sample$latitude, rat_sightings_sample$longitude)
   # }, ignoreNULL = FALSE)
   # 
   
   output$map <- renderLeaflet({
-    leaflet(data = zipdata) %>%
+    leaflet(data = rat_sightings_sample) %>%
       addProviderTiles(providers$Stamen.TonerLite,
         options = providerTileOptions(noWrap = TRUE)
       ) %>%
       setView(lng = -73.98928, lat = 40.75042, zoom = 10) %>%
-      addAwesomeMarkers( ~longitude, ~latitude, popup = as.character(paste(zipdata$Incident.Zip,
-                                                              zipdata$latitude,
-                                                              zipdata$longitude)))
+      addAwesomeMarkers( ~longitude, ~latitude, popup = as.character(paste(rat_sightings_sample$Incident.Zip,
+                                                              rat_sightings_sample$latitude,
+                                                              rat_sightings_sample$longitude)))
+  })
+  
+  output$zipViz <- renderPlot({
+    plot(rat_sightings_sample$Incident.Zip)
   })
   
 }
 shinyApp(ui = ui, server = server)
 ```
+
+
+
+
+
+
+
 ```{r}
 library(shiny)
 library(leaflet)
