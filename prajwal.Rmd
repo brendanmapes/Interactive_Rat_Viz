@@ -18,6 +18,7 @@ library(ggplot2)
 library(plotly)
 library(data.table)
 library(lubridate)
+library(leaflet.extras)
 
 # Download the data from https://data.cityofnewyork.us/api/views/3q43-55fe/rows.csv?accessType=DOWNLOAD
 # Alternate link: https://data.cityofnewyork.us/Social-Services/Rat-Sightings/3q43-55fe, click Export -> CSV
@@ -27,7 +28,11 @@ rat_sightings$latitude <- rat_sightings$Latitude
 rat_sightings$longitude <- rat_sightings$Longitude
 
 #set.seed(100)
-rat_sightings_sample <- rat_sightings[sample.int(nrow(rat_sightings), 10),]
+#rat_sightings_sample <- rat_sightings[sample.int(nrow(rat_sightings), 10000),]
+rat_sightings_sample <- rat_sightings
+latitude_colnum <- grep('latitude', colnames(rat_sightings_sample))
+longitude_colnum <- grep('longitude', colnames(rat_sightings_sample))
+rat_sightings_sample <- rat_sightings_sample[complete.cases(rat_sightings_sample[,latitude_colnum:longitude_colnum]),]
 
 
 ui <- fluidPage(
@@ -37,7 +42,7 @@ ui <- fluidPage(
       plotlyOutput("yearViz", height = 300),
     ),
     mainPanel(
-      leafletOutput("map"),
+      leafletOutput("map", height = "700px"),
     )
   )
 )
@@ -56,9 +61,11 @@ server <- function(input, output, session) {
         options = providerTileOptions(noWrap = TRUE)
       ) %>%
       setView(lng = -73.98928, lat = 40.75042, zoom = 10) %>%
-      addAwesomeMarkers( ~longitude, ~latitude, popup = as.character(paste(rat_sightings_sample$Incident.Zip,
-                                                              rat_sightings_sample$latitude,
-                                                              rat_sightings_sample$longitude)))
+      # addAwesomeMarkers( ~longitude, ~latitude, popup = as.character(paste(rat_sightings_sample$Incident.Zip,
+      #                                                         rat_sightings_sample$latitude,
+      #                                                         rat_sightings_sample$longitude)))
+      
+      addHeatmap( ~longitude, ~latitude, group = "heat",max=1, blur = 60)
   })
   
   output$cityViz <- renderPlotly({
@@ -68,7 +75,7 @@ server <- function(input, output, session) {
   })
   
   created_date_sample <- data.table(rat_sightings_sample$Created.Date)
-  created_date_sample$dates <- parse_date_time(created_dt$V1, '%m/%d/%y %I:%M:%S %p')
+  created_date_sample$dates <- parse_date_time(created_date_sample$V1, '%m/%d/%y %I:%M:%S %p')
   plot_created_year <- data.frame(table(year(date(created_date_sample$dates))))
   for (i in 2010:2021){
     if ((i %in% plot_created_year$Var1)==FALSE) {
@@ -84,7 +91,7 @@ server <- function(input, output, session) {
 
   output$yearViz <- renderPlotly({
       ggplotly(
-        ggplot(data=plot_created_year, aes(x=Var1, y=Freq)) + geom_bar(stat="identity") + xlab("Year") + xlim(2010,2021)
+        ggplot(data=plot_created_year, aes(x=Var1, y=Freq)) + geom_bar(stat="identity") + xlab("Year")
       )
   })
   
