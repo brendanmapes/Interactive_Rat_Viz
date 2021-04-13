@@ -28,7 +28,7 @@ rat_sightings$latitude <- rat_sightings$Latitude
 rat_sightings$longitude <- rat_sightings$Longitude
 
 #set.seed(100)
-#rat_sightings_sample <- rat_sightings[sample.int(nrow(rat_sightings), 10000),]
+#rat_sightings_sample <- rat_sightings[sample.int(nrow(rat_sightings), 100),]
 rat_sightings_sample <- rat_sightings
 latitude_colnum <- grep('latitude', colnames(rat_sightings_sample))
 longitude_colnum <- grep('longitude', colnames(rat_sightings_sample))
@@ -53,7 +53,9 @@ server <- function(input, output, session) {
   # points <- eventReactive(input$recalc, {
   #   cbind(rat_sightings_sample$latitude, rat_sightings_sample$longitude)
   # }, ignoreNULL = FALSE)
-  # 
+  #
+  
+
   
   output$map <- renderLeaflet({
     leaflet(data = rat_sightings_sample) %>%
@@ -69,33 +71,53 @@ server <- function(input, output, session) {
   })
   
   output$cityViz <- renderPlotly({
+      if (nrow(zipsInBounds()) == 0)
+        return(NULL)
       ggplotly(
-        ggplot(data=rat_sightings_sample %>% count(City), aes(x=City, y=n)) + geom_bar(stat="identity")
+        ggplot(data=zipsInBounds() %>% count(City), aes(x=City, y=n)) + geom_bar(stat="identity")
       )
   })
   
-  created_date_sample <- data.table(rat_sightings_sample$Created.Date)
-  created_date_sample$dates <- parse_date_time(created_date_sample$V1, '%m/%d/%y %I:%M:%S %p')
-  plot_created_year <- data.frame(table(year(date(created_date_sample$dates))))
-  for (i in 2010:2021){
-    if ((i %in% plot_created_year$Var1)==FALSE) {
-      print(i)
-      tmp_df <- data.frame(toString(i), 0)
-      names(tmp_df) <- c('Var1','Freq')
-      plot_created_year <- rbind(plot_created_year, tmp_df)
-    }
-  }
-  plot_created_year$Var1 <- as.numeric(as.character(plot_created_year$Var1))
-  plot_created_year <- plot_created_year[order(plot_created_year$Var1),]
-  plot_created_year
+ 
+  #plot_created_year
 
   output$yearViz <- renderPlotly({
+      if (nrow(zipsInBounds()) == 0)
+          return(NULL)
+    
+      created_date_sample <- data.table(zipsInBounds()$Created.Date)
+      created_date_sample$dates <- parse_date_time(created_date_sample$V1, '%m/%d/%y %I:%M:%S %p')
+      plot_created_year <- data.frame(table(year(date(created_date_sample$dates))))
+      for (i in 2010:2021){
+        if ((i %in% plot_created_year$Var1)==FALSE) {
+          #print(i)
+          tmp_df <- data.frame(toString(i), 0)
+          names(tmp_df) <- c('Var1','Freq')
+          plot_created_year <- rbind(plot_created_year, tmp_df)
+        }
+      }
+      plot_created_year$Var1 <- as.numeric(as.character(plot_created_year$Var1))
+      plot_created_year <- plot_created_year[order(plot_created_year$Var1),]
+    
       ggplotly(
         ggplot(data=plot_created_year, aes(x=Var1, y=Freq)) + geom_bar(stat="identity") + xlab("Year")
       )
   })
   
+  zipsInBounds <- reactive({
+    if (is.null(input$map_bounds))
+      return(zipdata[FALSE,])
+    bounds <- input$map_bounds
+    print(bounds)
+    latRng <- range(bounds$north, bounds$south)
+    lngRng <- range(bounds$east, bounds$west)
+    print(latRng)
 
+    subset(rat_sightings_sample,
+      latitude >= latRng[1] & latitude <= latRng[2] &
+        longitude >= lngRng[1] & longitude <= lngRng[2])
+  })
+  
   }
 shinyApp(ui = ui, server = server)
 ```
