@@ -56,3 +56,35 @@ ton_boro <- tonnage_data %>%
 ton_boro
 ```
 
+```{r}
+rat_ton <- left_join(rat_borough, ton_boro, by = c("Borough" = "BOROUGH"))
+rat_ton
+```
+```{r}
+rat <- ggplot(rat_ton, aes(y=n, x=Borough)) + 
+    geom_bar(position="dodge", stat="identity")
+rat
+```
+```{r}
+ton <- ggplot(rat_ton, aes(y=total_ton, x=Borough)) + 
+    geom_bar(position="dodge", stat="identity")
+ton
+```
+
+```{r}
+nyc <- readOGR("sanitation_data/DSNYSections/.", "geo_export_c0459e49-70dc-4fa8-a3fc-c3d366dedd05")
+```
+```{r}
+nyc_sp <- spTransform(nyc, CRS("+proj=longlat +datum=WGS84"))
+```
+```{r}
+nyc_sp@data
+```
+```{r}
+# tm_shape(nyc_sp) +
+# tm_fill("section", title = "Number of Tickets")
+```
+```{r}
+plot(nyc_sp)
+```
+
