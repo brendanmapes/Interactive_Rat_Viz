@@ -33,12 +33,70 @@ rat_data<-read.csv("sanitation_data/rat_data.csv")
 rat_data <- rat_data %>%
   mutate(Borough = str_to_title(rat_data$Borough))
 
-tonnage_data<-read.csv("sanitation_data/dsny_tonnage.csv", stringsAsFactors = FALSE)
+tonnage_data<-read.csv("sanitation_data/dsny_boro_tonnage.csv", stringsAsFactors = FALSE)
 
 
 head(rat_data)
 head(tonnage_data)
 ```
+
+converting tonnage month to date data
+
+```{r}
+ton_date <- tonnage_data %>%
+  mutate(MONTH = paste(MONTH, " / 01")) %>% 
+  mutate(MONTH = as.Date(MONTH, format = '%Y / %m / %d')) %>%
+  filter(MONTH > as.Date('2020-01-01', '%Y-%m-%d'), MONTH < as.Date('2021-03-01', '%Y-%m-%d')) %>% 
+  arrange(desc(MONTH))
+
+ton_date
+```
+converting and grouping rat data by month and borough
+
+```{r}
+rat_date <- rat_data %>% 
+  mutate(Created.Date = as.Date(Created.Date, "%m/%d/%Y")) %>%
+  mutate(Created.Date = as.character(Created.Date)) %>%
+  mutate(Created.Date = substr(Created.Date, 1, 8)) %>%
+  mutate(Created.Date = paste(Created.Date, '01')) %>%
+  mutate(Created.Date = as.Date(Created.Date, "%Y-%m-%d")) %>%
+  group_by(Created.Date, Borough) %>%
+  tally() %>%
+  filter(Created.Date > as.Date('2020-01-01', '%Y-%m-%d'), Created.Date < as.Date('2021-03-01', '%Y-%m-%d')) %>% 
+  arrange(desc(Created.Date))
+
+rat_date
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+full_tonnage <-read.csv("sanitation_data/dsny_full_tonnage.csv", stringsAsFactors = FALSE)
+full_tonnage <- full_tonnage %>%
+  mutate(district =  paste(full_tonnage$COMMUNITYDISTRICT, " ", str_to_upper(full_tonnage$BOROUGH)))
+      
+```
+```{r}
+head(full_tonnage)
+```
+```{r}
+ton_col <- unique(full_tonnage[c("district")]) 
+ratcol <- unique(rat_data[c("Community.Board")]) %>%
+```
+
+
 ```{r}
 rat_borough <- rat_data %>% 
   group_by(Borough) %>%
@@ -58,7 +116,6 @@ ton_boro
 
 ```{r}
 rat_ton <- left_join(rat_borough, ton_boro, by = c("Borough" = "BOROUGH"))
-rat_ton
 ```
 ```{r}
 rat <- ggplot(rat_ton, aes(y=n, x=Borough)) + 
@@ -72,13 +129,66 @@ ton
 ```
 
 ```{r}
+# dual y axis 
+
+# A few constants
+temperatureColor <- "#69b3a2"
+priceColor <- rgb(0.2, 0.6, 0.9, 1)
+
+f <- ggplot(rat_ton, aes(x=Borough)) +
+  
+  geom_bar( aes(y=n), stat='identity', fill=temperatureColor) + 
+  geom_bar( aes(y=total_ton), stat='identity', fill=priceColor) +
+  
+  scale_y_continuous(
+    
+    # Features of the first axis
+    name = "Number of Rat Sightings",
+    
+    # Add a second axis and specify its features
+    sec.axis = sec_axis(~ . + 10000000000000000, name="Metric Ton of Waste ")
+  ) + 
+  
+  # theme_ipsum() +
+
+  theme(
+    axis.title.y = element_text(color = temperatureColor, size=13),
+    axis.title.y.right = element_text(color = priceColor, size=13)
+  ) +
+
+  ggtitle("Rat Sightings and Sanitation Waste (Feb 2020 - Feb 2021)")
+```
+
+```{r}
+f
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
 nyc <- readOGR("sanitation_data/DSNYSections/.", "geo_export_c0459e49-70dc-4fa8-a3fc-c3d366dedd05")
 ```
 ```{r}
 nyc_sp <- spTransform(nyc, CRS("+proj=longlat +datum=WGS84"))
 ```
 ```{r}
-nyc_sp@data
+nyc_sp@data %>% 
+  filter(nyc_sp@data$district == 'BX0)
+
 ```
 ```{r}
 # tm_shape(nyc_sp) +
