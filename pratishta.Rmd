@@ -1,0 +1,58 @@
+---
+title: "NYC Sanitation and Rat Sightings "
+author: "Pratishta Yerakala"
+date: "4/14/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Download all necessary libraries 
+library(ggplot2)    # the king of plotting 
+library(magrittr)   # chain operators, e.g. to "pipe" a value forward
+library(plyr)
+library(dplyr) 
+library(tidyverse)
+library(DT)
+library(knitr)
+library(maps)
+library(rgdal)
+library(ggmap)
+library(tmap)
+library(sp)
+```
+
+
+```{r, layout="l-body-outset"}
+# read in the main csv file
+rat_data<-read.csv("sanitation_data/rat_data.csv")
+
+rat_data <- rat_data %>%
+  mutate(Borough = str_to_title(rat_data$Borough))
+
+tonnage_data<-read.csv("sanitation_data/dsny_tonnage.csv", stringsAsFactors = FALSE)
+
+
+head(rat_data)
+head(tonnage_data)
+```
+```{r}
+rat_borough <- rat_data %>% 
+  group_by(Borough) %>%
+  tally()
+
+rat_borough
+```
+
+
+```{r}
+ton_boro <- tonnage_data %>%
+  group_by(BOROUGH) %>%
+  summarise(total_ton = sum(REFUSETONSCOLLECTED))
+
+ton_boro
+```
+
