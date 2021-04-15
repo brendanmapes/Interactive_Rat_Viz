@@ -73,14 +73,32 @@ rat_ton_date <- merge(rat_date, ton_date, by.x = c("Created.Date", "Borough"), b
 
 rat_ton_date
 ```
+```{r}
+p <- ggplot(rat_ton_date, aes(x=Created.Date, y=REFUSETONSCOLLECTED)) +
+  geom_line(aes(color = Borough)) +
+  geom_point(aes(color = Borough)) +
+  xlab("Date by Months") + 
+  ylab("Weight of Waste (Tons)")
 
+p
+```
 
+```{r}
+p <- ggplot(rat_ton_date, aes(x=Created.Date, y=n)) +
+  geom_line(aes(color = Borough)) +
+  geom_point(aes(color = Borough)) +
+  xlab("Date by Months") + 
+  ylab("Number of rat sightings")
+
+p
+```
 
 ```{r}
 p <- ggplot(rat_ton_date, aes(x=Created.Date, y=rate)) +
   geom_line(aes(color = Borough)) +
-  # geom_smooth(, method = "lm", se = FALSE)
-  xlab("dsfsd")
+  geom_point(aes(color = Borough)) +
+  xlab("Date by Months") + 
+  ylab("Rate of rats per kiloton of waste")
 
 p
 ```
