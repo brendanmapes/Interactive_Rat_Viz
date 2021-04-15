@@ -107,6 +107,18 @@ p
 
 
 
+```{r}
+convertToShpDistrict <- function(borough, number) { 
+  boro = ''
+  d_num = ''
+  boro = case_when (str_to_lower(borough) == 'brooklyn' ~ 'BK',
+                    str_to_lower(borough) == 'manhattan' ~ 'MN',
+                    str_to_lower(borough) == 'queens' ~ 'QW',
+                    str_to_lower(borough) == 'staten island' ~ 'SI',
+                    str_to_lower(borough) == 'bronx' ~ 'BX'
+                    )
+  }
+```
 
 
 
@@ -220,8 +232,7 @@ nyc <- readOGR("sanitation_data/DSNYSections/.", "geo_export_c0459e49-70dc-4fa8-
 nyc_sp <- spTransform(nyc, CRS("+proj=longlat +datum=WGS84"))
 ```
 ```{r}
-# nyc_sp@data %>% 
-#   filter(nyc_sp@data$district == 'BX0)
+nyc_sp@data
 
 ```
 ```{r}
