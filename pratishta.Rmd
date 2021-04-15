@@ -67,7 +67,23 @@ rat_date <- rat_data %>%
 
 rat_date
 ```
+```{r}
+rat_ton_date <- merge(rat_date, ton_date, by.x = c("Created.Date", "Borough"), by.y = c("MONTH", "BOROUGH")) %>%
+  mutate(rate = n / (REFUSETONSCOLLECTED / 100))
 
+rat_ton_date
+```
+
+
+
+```{r}
+p <- ggplot(rat_ton_date, aes(x=Created.Date, y=rate)) +
+  geom_line(aes(color = Borough)) +
+  # geom_smooth(, method = "lm", se = FALSE)
+  xlab("dsfsd")
+
+p
+```
 
 
 
@@ -92,8 +108,8 @@ full_tonnage <- full_tonnage %>%
 head(full_tonnage)
 ```
 ```{r}
-ton_col <- unique(full_tonnage[c("district")]) 
-ratcol <- unique(rat_data[c("Community.Board")]) %>%
+# ton_col <- unique(full_tonnage[c("district")]) 
+# ratcol <- unique(rat_data[c("Community.Board")]) %>%
 ```
 
 
@@ -186,8 +202,8 @@ nyc <- readOGR("sanitation_data/DSNYSections/.", "geo_export_c0459e49-70dc-4fa8-
 nyc_sp <- spTransform(nyc, CRS("+proj=longlat +datum=WGS84"))
 ```
 ```{r}
-nyc_sp@data %>% 
-  filter(nyc_sp@data$district == 'BX0)
+# nyc_sp@data %>% 
+#   filter(nyc_sp@data$district == 'BX0)
 
 ```
 ```{r}
