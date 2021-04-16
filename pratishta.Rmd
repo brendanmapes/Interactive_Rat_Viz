@@ -108,35 +108,56 @@ p
 
 
 ```{r}
-convertToShpDistrict <- function(borough, number) { 
-  boro = ''
-  d_num = ''
-  boro = case_when (str_to_lower(borough) == 'brooklyn' ~ 'BK',
-                    str_to_lower(borough) == 'manhattan' ~ 'MN',
-                    str_to_lower(borough) == 'queens' ~ 'QW',
-                    str_to_lower(borough) == 'staten island' ~ 'SI',
-                    str_to_lower(borough) == 'bronx' ~ 'BX'
-                    )
-  }
+convertToShpDistrict <- function(com_district) {
+  sapply(com_district, function(com_district) { 
+  split = strsplit(com_district, " ")
+  boro = case_when (str_to_lower(split[[1]][2]) == 'brooklyn' ~ 'BK',
+                    str_to_lower(split[[1]][2]) == 'manhattan' ~ 'MN',
+                    str_to_lower(split[[1]][2]) == 'queens' ~ 'QW',
+                    str_to_lower(split[[1]][2]) == 'staten' ~ 'SI',
+                    str_to_lower(split[[1]][2]) == 'bronx' ~ 'BX'
+                    );
+
+  ans <- paste(boro, split[[1]][1], sep="")
+
+  return (ans)
+  })
+}
 ```
-
-
-
-
-
-
-
 
 
 ```{r}
 full_tonnage <-read.csv("sanitation_data/dsny_full_tonnage.csv", stringsAsFactors = FALSE)
 full_tonnage <- full_tonnage %>%
-  mutate(district =  paste(full_tonnage$COMMUNITYDISTRICT, " ", str_to_upper(full_tonnage$BOROUGH)))
+  mutate(district =  paste(full_tonnage$COMMUNITYDISTRICT, str_to_upper(full_tonnage$BOROUGH)))
       
 ```
 ```{r}
 head(full_tonnage)
 ```
+
+```{r}
+ton_map <- full_tonnage %>%
+  mutate(community_district = convertToShpDistrict(district)) %>% 
+  group_by(community_district) %>%
+  summarise(total_ton = sum(REFUSETONSCOLLECTED))
+
+ton_map
+```
+
+
+```{r}
+rat_map <- rat_data %>%
+  mutate(community_district = convertToShpDistrict(Community.Board)) %>% 
+  group_by(community_district) %>%
+  tally()
+
+rat_map
+```
+
+
+
+
 ```{r}
 # ton_col <- unique(full_tonnage[c("district")]) 
 # ratcol <- unique(rat_data[c("Community.Board")]) %>%
@@ -226,19 +247,75 @@ f
 
 
 ```{r}
-nyc <- readOGR("sanitation_data/DSNYSections/.", "geo_export_c0459e49-70dc-4fa8-a3fc-c3d366dedd05")
+nyc <- readOGR("sanitation_data/CommunityDistricts/.", "geo_export_d81daad1-2b49-44c3-81d4-72436a58def3")
 ```
 ```{r}
 nyc_sp <- spTransform(nyc, CRS("+proj=longlat +datum=WGS84"))
 ```
-```{r}
-nyc_sp@data
 
+```{r}
+convertBoroCDToDistrict <- function(borocd) {
+  sapply(borocd, function(borocd) { 
+  boro_ch = as.character(borocd) 
+  boro_n = substr(boro_ch, 1, 1)
+  cd_n = substr(boro_ch, 2, 3)
+  
+  print(boro_ch)
+  
+  boro = case_when (boro_n == '1' ~ 'MN',
+                    boro_n == '2' ~ 'BX',
+                    boro_n == '3' ~ 'BK',
+                    boro_n == '4' ~ 'QW',
+                    boro_n == '5' ~ 'SI'
+                    )
+  
+  # print(boro)
+
+  ans <- paste(boro, cd_n, sep="")
+  # print(ans)
+
+  return (ans)
+  })
+}
+```
+
+```{r}
+nyc_sp@data <- nyc_sp@data %>%
+  mutate(community_district = convertBoroCDToDistrict(boro_cd))
+
+nyc_sp@data
 ```
 ```{r}
-# tm_shape(nyc_sp) +
-# tm_fill("section", title = "Number of Tickets")
+nyc_sp@data <- left_join(nyc_sp@data, rat_map)
+nyc_sp@data
 ```
+
+```{r}
+nyc_sp@data <- left_join(nyc_sp@data, ton_map) 
+nyc_sp@data
+```
+```{r}
+nyc_sp
+```
+
+```{r}
+# ggplot() + 
+#   geom_polygon(data = nyc_sp, aes(fill = n, x = ))
+# library(geojsonio)
+# spdf <- geojson_read("sanitation_data/DSNYSections/.", "DSNYSections.geojson", what = "sp")
+# spdf
+```
+```{r}
+tm_shape(nyc_sp) +
+tm_fill("n", title = "Rat Sightings in Community Districts")
+```
+
+```{r}
+tm_shape(nyc_sp) +
+tm_fill("total_ton", title = "Tones of Waste and Rat Sightings by DSNY Districts")
+```
+
+
 ```{r}
 plot(nyc_sp)
 ```
