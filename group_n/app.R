@@ -312,10 +312,13 @@ ui <- fluidPage(
     br(),
   ),
   fluidRow(
-   div(
+    tags$style(".padding {
+                            margin-left:30px;
+                            margin-right:30px;
+                          }"),
       br(),
       align = "left",
-      p("The large rodent population in New York City is no secret. Rats have been
+      div(class='padding', p("The large rodent population in New York City is no secret. Rats have been
       associated with the city for a long time whether it's from the famous", a('pizza rat', href='https://knowyourmeme.com/memes/pizza-rat'),
       "or to the rising concern from residents who have noticed changes since the COVID-19 pandemic.
       Many businesses and normally occurring procedures have been slowed down or 
@@ -326,7 +329,8 @@ ui <- fluidPage(
       br(),
       
       p("First I looked at basic descriptive stats:")
-    )
+      )
+    
   ),
   fluidRow(
     br(),
