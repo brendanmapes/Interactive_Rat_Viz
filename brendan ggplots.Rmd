@@ -1,0 +1,54 @@
+---
+title: "brendan ggplots"
+author: "Brendan Mapes"
+date: "4/17/2021"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(ggthemes)
+library(gridExtra)
+library(dplyr)
+library(ggpubr)
+
+
+open <- read.csv("Open_Restaurant_Applications.csv")
+inspection <- read.csv("DOHMH_New_York_City_Restaurant_Inspection_Results.csv")
+rat_311 <- read.csv("311_Service_Requests_from_2010_to_Present.csv")
+
+
+restaurant_borough <- count(open, Borough)
+rat_borough <- count(rat_311, Borough)
+borough <- c("Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island", "none")
+rat_borough <- cbind(rat_borough, borough) %>% filter(borough!= "none")
+
+inspection_bc <- inspection %>% filter(GRADE == "B" | GRADE == "C")
+inspection_count_2020 <- count(inspection_bc, BORO)
+
+street_seating <- filter(open, Approved.for.Roadway.Seating == "yes")
+count_street <- count(street_seating, Borough)
+
+sidewalk_seating <- filter(open, Approved.for.Sidewalk.Seating == "yes")
+count_sidewalk <- count(sidewalk_seating, Borough)
+
+
+
+plot1 <- ggplot() + geom_bar(data=rat_borough, aes(x=borough, y=n), stat="identity", color="black", fill="darkred") + ggtitle("2020 Rodent reports") + ylab("Number of 311 calls\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7)) 
+
+plot2 <- ggplot() + geom_bar(data=restaurant_borough, aes(x =Borough, y= n), stat="identity", color="black", fill = "darkorange") + ggtitle("Outdoor restaurants") + ylab("Applications approved\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) + theme(axis.text.x = element_text(angle = 40, vjust=.7))
+
+plot3 <- ggplot() + geom_bar(data=inspection_count_2020, aes(x=BORO, y=n), stat="identity", color="black", fill="yellow") + ggtitle("B or C inspection scores") + ylab("Restaurants\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+
+
+plot4 <- ggplot() + geom_bar(data=count_street, aes(x=Borough, y=n), stat="identity", color="black", fill="lightblue") + ggtitle("Street dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+
+plot5 <- ggplot() + geom_bar(data=count_sidewalk, aes(x=Borough, y=n), stat="identity", color="black", fill= "tan") + ggtitle("Sidewalk dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+
+figure <- grid.arrange(plot1, plot2, ncol=2)
+figure2 <- grid.arrange(plot4,plot5, ncol=2)
+
+
+
+```
