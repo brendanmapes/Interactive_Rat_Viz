@@ -12,4 +12,4 @@ Title:
 
 Abstract:
 
-Data: For our analysis, we will be using data from NYC OpenData (https://opendata.cityofnewyork.us/), specifically
+Data: For our analysis, we will be using data from [NYC OpenData](https://opendata.cityofnewyork.us/), specifically
