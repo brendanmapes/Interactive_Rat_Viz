@@ -287,7 +287,7 @@ nyc_sp@data
 
 ui <- fluidPage(
   align = "center",
-  titlePanel("Rats and NYC: Exploratory Visualization"),
+  headerPanel("Rats and NYC: Exploratory Visualization"),
   strong("Data Visualization (QMSS - G5063) Final Project"),
   br(),
   em("Group N: Brendan Mapes, Prajwal Seth, and Pratishta Yerakala"),
@@ -307,19 +307,30 @@ ui <- fluidPage(
   fluidRow(
     br(),
     align = "center",
-    headerPanel("Rat Sightings and Sanitation Waste by Borough"),
+    titlePanel("Rat Sightings and Sanitation Waste by Borough"),
     p("Pratishta Yerakala"),
-    p("A new p() command starts a new paragraph. Supply a style attribute to change the format of the entire paragraph.", style = "font-family: 'times'; font-si16pt"),
-    strong("strong() makes bold text."),
-    em("em() creates italicized (i.e, emphasized) text."),
     br(),
-    code("code displays your text similar to computer code"),
-    div("div creates segments of text with a similar style. This division of text is all blue because I passed the argument 'style = color:blue' to div", style = "color:blue"),
+  ),
+  fluidRow(
+   div(
+      br(),
+      align = "left",
+      p("The large rodent population in New York City is no secret. Rats have been
+      associated with the city for a long time whether it's from the famous", a('pizza rat', href='https://knowyourmeme.com/memes/pizza-rat'),
+      "or to the rising concern from residents who have noticed changes since the COVID-19 pandemic.
+      Many businesses and normally occurring procedures have been slowed down or 
+      halted completely. One such example in particular with the Department of 
+      Sanitation of NY (DSNY) where limited resources and budget cuts since the 
+      pandemic have caused an", a("increased amount of litter and waste production", href="https://patch.com/new-york/new-york-city/city-state-leaders-decry-sanitation-setback-trash-piles"),
+      "."),
+      br(),
+      
+      p("First I looked at basic descriptive stats:")
+    )
+  ),
+  fluidRow(
     br(),
-    p("span does the same thing as div, but it works with",
-      span("groups of words", style = "color:blue"),
-      "that appear inside a paragraph."),
-
+    align = "center",
     plotlyOutput("pratishta1", width = "70%"),
     
     headerPanel("Hello please change this2"),
