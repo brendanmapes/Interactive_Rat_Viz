@@ -1,0 +1,260 @@
+#install.packages('rsconnect')
+#library(rsconnect)
+library(shiny)
+library(leaflet)
+library(RColorBrewer)
+library(scales)
+library(lattice)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(data.table)
+library(lubridate)
+library(leaflet.extras)
+
+library(magrittr)   # chain operators, e.g. to "pipe" a value forward
+#library(plyr)
+library(tidyverse)
+library(DT)
+library(knitr)
+library(maps)
+library(rgdal)
+library(ggmap)
+library(tmap)
+library(sp)
+library(tmap)
+library(sf)
+library(stars)
+library(spData)
+library(classInt)
+library(lattice)
+library(grid)
+library(pals)
+
+
+# Download the data from https://data.cityofnewyork.us/api/views/3q43-55fe/rows.csv?accessType=DOWNLOAD
+# Alternate link: https://data.cityofnewyork.us/Social-Services/Rat-Sightings/3q43-55fe, click Export -> CSV
+
+rat_sightings <- read.csv("data/Rat_Sightings.csv")
+
+rat_sightings$latitude <- rat_sightings$Latitude
+rat_sightings$longitude <- rat_sightings$Longitude
+
+#set.seed(100)
+#rat_sightings_sample <- rat_sightings[sample.int(nrow(rat_sightings), 100),]
+rat_sightings_sample <- rat_sightings
+latitude_colnum <- grep('latitude', colnames(rat_sightings_sample))
+longitude_colnum <- grep('longitude', colnames(rat_sightings_sample))
+rat_sightings_sample <- rat_sightings_sample[complete.cases(rat_sightings_sample[,latitude_colnum:longitude_colnum]),]
+
+
+
+
+## ---- layout="l-body-outset"---------------------------------------------
+# read in the main csv file
+rat_data<-read.csv("data/rat_data.csv")
+rat_data <- rat_data %>%
+  mutate(Borough = str_to_title(rat_data$Borough))
+tonnage_data<-read.csv("data/dsny_boro_tonnage.csv", stringsAsFactors = FALSE)
+#head(rat_data)
+#head(tonnage_data)
+
+
+## ------------------------------------------------------------------------
+ton_date <- tonnage_data %>%
+  mutate(MONTH = paste(MONTH, " / 01")) %>%
+  mutate(MONTH = as.Date(MONTH, format = '%Y / %m / %d')) %>%
+  filter(MONTH > as.Date('2020-01-01', '%Y-%m-%d'), MONTH < as.Date('2021-03-01', '%Y-%m-%d')) %>%
+  arrange(desc(MONTH))
+#ton_date
+
+
+## ------------------------------------------------------------------------
+rat_date <- rat_data %>%
+  mutate(Created.Date = as.Date(Created.Date, "%m/%d/%Y")) %>%
+  mutate(Created.Date = as.character(Created.Date)) %>%
+  mutate(Created.Date = substr(Created.Date, 1, 8)) %>%
+  mutate(Created.Date = paste(Created.Date, '01')) %>%
+  mutate(Created.Date = as.Date(Created.Date, "%Y-%m-%d")) %>%
+  group_by(Created.Date, Borough) %>%
+  tally() %>%
+  filter(Created.Date > as.Date('2020-01-01', '%Y-%m-%d'), Created.Date < as.Date('2021-03-01', '%Y-%m-%d')) %>%
+  arrange(desc(Created.Date))
+#rat_date
+
+## ------------------------------------------------------------------------
+rat_ton_date <- merge(rat_date, ton_date, by.x = c("Created.Date", "Borough"), by.y = c("MONTH", "BOROUGH")) %>%
+  mutate(rate = n / (REFUSETONSCOLLECTED / 100))
+#rat_ton_date
+
+
+
+ui <- fluidPage(
+  sidebarLayout(
+    sidebarPanel(
+      plotlyOutput("cityViz", height = 300),
+      plotlyOutput("yearViz", height = 300),
+      plotlyOutput("locationViz", height = 300),
+    ),
+    mainPanel(
+      leafletOutput("map", height = "700px"),
+    )
+  ),
+  fluidRow(
+    plotlyOutput("pratishta1"),
+    plotlyOutput("pratishta2"),
+    plotlyOutput("pratishta3"),
+  )
+)
+
+
+server <- function(input, output, session) {
+  
+  # points <- eventReactive(input$recalc, {
+  #   cbind(rat_sightings_sample$latitude, rat_sightings_sample$longitude)
+  # }, ignoreNULL = FALSE)
+  #
+  
+  
+  
+  getColor <- function(rat_sightings_sample, i) {
+    if(rat_sightings_sample$Status[i] == "Closed") {
+      "green"
+    } else if(rat_sightings_sample$Status[i] == "In Progress" | rat_sightings_sample$Status[i] == "Assigned") {
+      "orange"
+    } else {
+      "red"
+    }}
+  
+  markerColors <- rep(NA, nrow(rat_sightings_sample))
+  
+  for (i in 1:nrow(rat_sightings_sample)){
+    markerColors[i] <- getColor(rat_sightings_sample, i)
+  }
+  
+  
+  icons <- awesomeIcons(
+    icon = 'ios-close',
+    iconColor = 'black',
+    library = 'ion',
+    markerColor = markerColors
+  )
+  
+  
+  output$map <- renderLeaflet({
+    leaflet(data = rat_sightings_sample) %>%
+      addProviderTiles(providers$Stamen.TonerLite,
+                       options = providerTileOptions(noWrap = TRUE)
+      ) %>%
+      setView(lng = -73.98928, lat = 40.75042, zoom = 10) %>%
+      addAwesomeMarkers( ~longitude, ~latitude, clusterOptions = markerClusterOptions() ,icon = icons, 
+                         popup = as.character(paste('Created date:', rat_sightings_sample$Created.Date,'<br>',
+                                                    'Complaint type:',rat_sightings_sample$Complaint.Type,'<br>',
+                                                    'Descriptor:',rat_sightings_sample$Descriptor,'<br>',
+                                                    'Address:',rat_sightings_sample$Incident.Address,'<br>',
+                                                    'Status:', rat_sightings_sample$Status))) %>%
+      addHeatmap( ~longitude, ~latitude, group = "heat",max=1, blur = 60) %>% addLegend("topleft", 
+                                                                                        colors =c('green',  "orange", "red"),
+                                                                                        labels= c("Closed", "In Progress/Assigned","Open/Pending"),
+                                                                                        title= "Case status",
+                                                                                        opacity = 1)
+    
+  })
+  
+  output$cityViz <- renderPlotly({
+    if (nrow(zipsInBounds()) == 0)
+      return(NULL)
+    
+    tmp <- (zipsInBounds() %>% count(City))
+    tmp <- tmp[order(-tmp$n),]
+    tmp <- tmp[1:5,]
+    ggplotly(
+      ggplot(tmp, aes(x=City, y=n, fill = City)) + geom_bar(stat="identity") + xlab('Location Type') + ylab("Top 5 visible cities") + theme(legend.position = "none") + scale_color_brewer(palette="Dark2")
+    )
+  })
+  
+  
+  output$locationViz <- renderPlotly({
+    if (nrow(zipsInBounds()) == 0)
+      return(NULL)
+    
+    tmp <- (zipsInBounds() %>% count(Location.Type))
+    tmp <- tmp[order(-tmp$n),]
+    tmp <- tmp[1:5,]
+    ggplotly(
+      ggplot(tmp, aes(x=Location.Type, y=n, fill = Location.Type, show.legend = FALSE)) + geom_bar(stat="identity") + xlab('Location Type') + ylab("Visible location types")
+    )
+  })
+  
+  output$pratishta1 <- renderPlotly({
+    p <- ggplot(rat_ton_date, aes(x=Created.Date, y=REFUSETONSCOLLECTED)) +
+      geom_line(aes(color = Borough)) +
+      geom_point(aes(color = Borough)) +
+      xlab("Date by Months") +
+      ylab("Weight of Waste (Tons)")
+    p
+  })
+
+  output$pratishta2 <- renderPlotly({
+    p <- ggplot(rat_ton_date, aes(x=Created.Date, y=n)) +
+      geom_line(aes(color = Borough)) +
+      geom_point(aes(color = Borough)) +
+      xlab("Date by Months") +
+      ylab("Number of rat sightings")
+    p
+  })
+
+  output$pratishta3 <- renderPlotly({
+    p <- ggplot(rat_ton_date, aes(x=Created.Date, y=rate)) +
+      geom_line(aes(color = Borough)) +
+      geom_point(aes(color = Borough)) +
+      xlab("Date by Months") +
+      ylab("Rate of rats per kiloton of waste")
+    p
+  })
+  
+  
+  
+  
+  
+  #plot_created_year
+  
+  output$yearViz <- renderPlotly({
+    if (nrow(zipsInBounds()) == 0)
+      return(NULL)
+    
+    created_date_sample <- data.table(zipsInBounds()$Created.Date)
+    created_date_sample$dates <- parse_date_time(created_date_sample$V1, '%m/%d/%y %I:%M:%S %p')
+    plot_created_year <- data.frame(table(year(date(created_date_sample$dates))))
+    for (i in 2010:2021){
+      if ((i %in% plot_created_year$Var1)==FALSE) {
+        #print(i)
+        tmp_df <- data.frame(toString(i), 0)
+        names(tmp_df) <- c('Var1','Freq')
+        plot_created_year <- rbind(plot_created_year, tmp_df)
+      }
+    }
+    plot_created_year$Var1 <- as.numeric(as.character(plot_created_year$Var1))
+    plot_created_year <- plot_created_year[order(plot_created_year$Var1),]
+    
+    ggplotly(
+      ggplot(data=plot_created_year, aes(x=Var1, y=Freq)) + geom_path(stat="identity") + xlab("Year") + ylab('Number of sightings')
+    )
+  })
+  
+  zipsInBounds <- reactive({
+    if (is.null(input$map_bounds))
+      return(zipdata[FALSE,])
+    bounds <- input$map_bounds
+    #print(bounds)
+    latRng <- range(bounds$north, bounds$south)
+    lngRng <- range(bounds$east, bounds$west)
+    #print(latRng)
+    
+    subset(rat_sightings_sample,
+           latitude >= latRng[1] & latitude <= latRng[2] &
+             longitude >= lngRng[1] & longitude <= lngRng[2])
+  })
+  
+}
+shinyApp(ui = ui, server = server)

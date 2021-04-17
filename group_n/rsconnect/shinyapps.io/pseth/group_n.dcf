@@ -1,0 +1,13 @@
+name: group_n
+title:
+username:
+account: pseth
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3957808
+bundleId: 4482328
+url: https://pseth.shinyapps.io/group_n/
+when: 1618620519.31751
+lastSyncTime: 1618620519.31752
+asMultiple: FALSE
+asStatic: FALSE
