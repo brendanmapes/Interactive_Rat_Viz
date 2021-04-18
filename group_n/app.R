@@ -39,7 +39,7 @@ library(grid)
 library(pals)
 
 
-# prajwal's code ----------------------------------------------------------
+# prajwal's data fetch ----------------------------------------------------------
 
 
 # Download the data from https://data.cityofnewyork.us/api/views/3q43-55fe/rows.csv?accessType=DOWNLOAD
@@ -191,12 +191,111 @@ nyc_sp@data
 # shiny code
 
 
+
+
+# brendan's imports and code -------------------------------------------------------
+
+library(ggplot2)
+library(ggthemes)
+library(gridExtra)
+library(dplyr)
+library(readr)
+library(leaflet)
+library(leaflet.extras)
+library(magrittr)
+
+library(dplyr)
+library(tidyr)
+library(wordcloud)
+library(png)
+library(ggwordcloud)
+library(tidytext)
+library(readr)
+library(png)
+#setwd("~/Bayesian")
+
+
+open <- read.csv("data/Open_Restaurant_Applications.csv")
+inspection <- read.csv("data/DOHMH_New_York_City_Restaurant_Inspection_Results.csv")
+rat_311 <- read.csv("data/311_Service_Requests_from_2010_to_Present.csv")
+
+
+restaurant_borough <- count(open, Borough)
+rat_borough <- count(rat_311, Borough)
+borough <- c("Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island", "none")
+rat_borough <- cbind(rat_borough, borough) %>% filter(borough!= "none")
+
+inspection_bc <- inspection %>% filter(GRADE == "B" | GRADE == "C")
+inspection_count_2020 <- count(inspection_bc, BORO)
+
+street_seating <- filter(open, Approved.for.Roadway.Seating == "yes")
+count_street <- count(street_seating, Borough)
+
+sidewalk_seating <- filter(open, Approved.for.Sidewalk.Seating == "yes")
+count_sidewalk <- count(sidewalk_seating, Borough)
+
+manhattan_311 <- filter(rat_311, Borough == "MANHATTAN")
+#manhattan_311 <- read.csv("manhattan311.csv")
+manhattan_open <- read.csv("data/manhattan open restaurants.csv")
+manhattan_311 <- filter(manhattan_311, manhattan_311$Complaint.Type=="Rodent")
+manhattan_311 <- data.frame(manhattan_311$Latitude, manhattan_311$Longitude, manhattan_311$Incident.Address, manhattan_311$Created.Date, manhattan_311$Descriptor)
+
+icon <- makeIcon(iconUrl= "https://cdn3.iconfinder.com/data/icons/farm-animals/128/mouse-512.png", iconWidth=25, iconHeight = 20)
+
+#manhattan_311b <- read.csv("manhattan311.csv")
+#manhattan_311b <- read.csv("https://nycopendata.socrata.com/api/views/erm2-nwe9/rows.csv?accessType=DOWNLOAD")
+
+
+# code for making wordcloud (not used in live version for processing power reasons) -----------------------------------------------
+
+
+# manhattan_311b <- filter(rat_311, Borough == "MANHATTAN")
+# nrow(manhattan_311b)
+# 
+# manhattan_311b <- manhattan_311b %>% filter(Complaint.Type != "Noise = Street/Sidewalk" & Complaint.Type != "Noise - Residential" & Complaint.Type != "HEAT/HOT WATER" & Complaint.Type != "Illegal Parking" & Complaint.Type != "Non-Emergency Police Matter" & Complaint.Type != "Noise" & Complaint.Type != "Noise - Vehicle" & Complaint.Type != " Noise - Commercial")
+# descriptors <- manhattan_311b %>% select(Descriptor)
+# descriptors_fix <- as.character(descriptors$Descriptor)
+# text_df <- tibble(line = 1:length(descriptors_fix), text = descriptors_fix)
+# descriptors <- text_df %>% unnest_tokens(word, text)
+# 
+# descriptors <- count(descriptors, word) 
+# descriptors2 <- filter(descriptors, n > 2000)
+# col <- c(ifelse(descriptors2$word == "pests" | descriptors2$word == "rat" | descriptors2$word == "sighting" | descriptors2$word == "rodents", "red", "black"))
+# descriptors3 <- cbind(descriptors2, col)
+# descriptors3 <- filter(descriptors3, word != "n" & word != "a" & word != "not" & word != "business" & word != "no" & word!= "compliance" & word != "or" & word != "in" & word != "of" & word!= "to" & word!= "non" & word!= "on" & word != "has" & word!= "for")
+# #setwd("~/Bayesian")
+# img <- readPNG("data/rat.png")
+# #img <- icon
+# descriptors3 <- descriptors3 %>% filter(word != "loud" & word!= "music" & word != "party")
+# set.seed(14)
+
+# (wordcloud1 <- ggplot(descriptors3, aes(label=word, size=n, color=col)) + geom_text_wordcloud_area(mask=img, rm_outside = TRUE) + scale_size_area(max_size=5) + theme_classic())
+# (wordcloud2 <- ggplot(descriptors3, aes(label=word, size=n, color=col)) + geom_text_wordcloud_area() + scale_size_area())
+
+
+
 # user interface for setting layout of plots ----------------------------------------------------------
+
+
+# sliders and interactive map ---------------------------------------------
+
 
 rat_sightings_buroughs <- as.character(unique(unlist(rat_sightings$Borough)))
 rat_sightings_case_status <- as.character(unique(unlist(rat_sightings$Status)))
 
 ui <- fluidPage(
+  
+  
+  tags$head(
+    # Note the wrapping of the string in HTML()
+    tags$style(HTML("
+      .row {
+        margin-left: 0;
+        margin-right:0;
+      }"))
+  ),
+  
+  
   fluidRow(align = "center",
                 h1("Rats and NYC: Exploratory Visualization"),
                 strong("Data Visualization (QMSS - G5063) Final Project"),
@@ -217,9 +316,11 @@ ui <- fluidPage(
       span("groups of words", style = "color:blue"),
       "that appear inside a paragraph."),
   ),
-  fluidRow(style='margin-right:0px;',
-    sidebarLayout(
-      sidebarPanel(width = 6, style='margin-right:0px;',
+  
+  fluidRow(
+    sidebarLayout(position = "right",
+      
+      sidebarPanel(width = 6, 
         sliderInput("num_sample", label = h4("Select number of random samples"), min = 1,
                                max = nrow(rat_sightings), value = 10000, step = 1000),
         
@@ -243,13 +344,14 @@ ui <- fluidPage(
   
         #plotlyOutput("locationViz", height = 300),
       ),
-      mainPanel(width = 6,
-        leafletOutput("map", height = 825),
-      )
+      mainPanel(width = 6, style='margin-top:40px;',
+                leafletOutput("map", height = 825),
+      ),
     ),
     # PRATISHTA'S WRITEUP --------------------------------------------------------
     fluidRow(
       align = "center",
+      style='margin-left:0px; margin-right: 0px;',
       h2("Rat Sightings and Sanitation Waste by Borough"),
       h3("Pratishta Yerakala"),
       br(),
@@ -290,12 +392,12 @@ ui <- fluidPage(
       # descriptive charts 
       h3("Total Number of Rat Sightings (2020-2021)"),
       h6("Chart 1"),
-      plotlyOutput("pratishta4", width = "50%"),
+      plotlyOutput("pratishta5", width = "50%"),
       br(),
       
       h3("Total Waste Produced (2020-2021)"),
       h6("Chart 2"),
-      plotlyOutput("pratishta5", width = "50%"),
+      plotlyOutput("pratishta4", width = "50%"),
       br(),
       
       p(class = "padding", align = "left", "We can see  in Chart 1 that Brooklyn produces the most tons of waste followed by
@@ -400,7 +502,145 @@ ui <- fluidPage(
       This exploratory data visulaization provides the insight to further look 
       in those districts.")
     ),
-    # END OF PRATISHTA'S WRITEUP -------------------------------------------------
+    # Brendan's writeup  -------------------------------------------------
+    fluidRow(
+      align = "center",
+      h2("Rat Sightings and Restaurants by Borough"),
+      h3("Brendan Mapes"),
+      br(),
+      
+    ),
+    fluidRow(
+      tags$style(".padding {
+                            margin-left:30px;
+                            margin-right:30px;
+                          }"),
+      tags$style(".leftAlign{float:left;}"),
+      align = "left",
+      div(class='padding',
+          h4("Data used:"),
+          h5(a("Rat sightings", href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9"), h6("Filtered to 311 calls from Jan 1 2020 to Dec 31 2020, of complaint type “rodent”.")),
+          h5(a("Open Restaurants", href="https://data.cityofnewyork.us/Transportation/Open-Restaurant-Applications/pitm-atqc/data"),),
+      ),
+      
+      div(class='padding', 
+          h4("Background:"),
+          p("It is well documented that the COVID-19 pandemic has led to a rise in rat sightings throughout New York
+City. It is also well known that the pandemic has been especially hard on the restaurant industry. Hit
+especially hard by stay-at-home orders and social distancing mandates, restaurants have been forced to
+innovate their operations. Now more than ever, restaurants are serving customers outside in the
+streets. We suspect this change in the way restaurants do their business may be contributing to the
+increase in rat sightings. We explore this possibility a bit further in the next few visualizations."),
+      ),
+      div(class='padding',
+          h4("Visualizations:"),
+      ),
+    ),
+    
+    
+    # descriptive charts 
+    
+    fluidRow(align = "center",
+             br(),
+             h3("NYC311 rodent complaints in 2020 and number of restaurants by type"),
+             h6("Chart 9"),br(),
+             plotOutput("brendan_chart1", width = "80%"),
+             plotOutput("brendan_chart2", width = "80%"),
+             br(),
+    p(class = "padding", align = "left", "In all four figures, we can see that Manhattan is far above the rest of the boroughs in restaurants
+approved for outdoor dining, in sidewalk and street dining. However, it is Brooklyn that is far above the
+rest of the boroughs in rodent reports in 2020. This suggests that perhaps another factor is contributing
+to the rat problem in the Brooklyn borough. If restaurants were fully to blame for it’s rat problem, we
+would expect to see it having high numbers of restaurants approved for outdoor street and sidewalk
+dining, a number comparable to the borough of Manhattan. 
+
+The first bar plot displays the number of rodent related 311 reports in the year 2020 by borough.
+Brooklyn leads the way with well over 10,000 rodent related calls in the year, while the next closest
+borough, Manhattan, only has about 8,000 rodent related calls in the year. In the bar plots related to
+restaurants, we see Manhattan leads the way across the board. In the restaurants with outdoor dining,
+sidewalk and street dining, Manhattan has twice as many restaurants than any other borough. Because
+of this vast difference in the number of restaurants in Manhattan compared to the other boroughs, we
+will narrow our focus to Manhattan in the next visualization."),),),
+  br(),
+  fluidRow(
+    tags$style(".padding {
+                            margin-left:30px;
+                            margin-right:30px;
+                          }"),
+    tags$style(".leftAlign{float:left;}"),
+    align = "left",
+    div(class='padding',
+        h4("Data used:"),
+        h5(a("Rat sightings", href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9"), h6("Filtered to 311 calls from Jan 1 2020 to Dec 31 2020, of complaint type “rodent” in Manhattan borough.")),
+        h5(a("Open Restaurants", href="https://data.cityofnewyork.us/Transportation/Open-Restaurant-Applications/pitm-atqc/data"),h6("Filtered to Manhattan borough.")),
+    ),
+    div(class='padding',
+        h4("Visualization:"),
+    ),
+    
+    fluidRow(align = "center",
+             h3("Rat sightings in 2020 overlaid on restaurant locations in Manhattan"),
+             h6("Chart 10"),),br(),
+    fluidRow(
+      
+      leafletOutput("brendan_map", height = 500, width = "100%"),
+      br(),
+      p(class = "padding", align = "left", "Based off exploratory analysis of the restaurants and rat reports across all boroughs, it’s clear
+Manhattan’s restaurant industry may be most closely linked to the rat problem than in other boroughs.
+For that reason, we have provided an interactive map visualization of the Manhattan borough
+specifically. In the map, restaurants are plotted and viewers can see the location and name of the
+restaurant, along with whether or not the restaurant is available for open street or sidewalk dining. Also
+charted on the map are the location of rat sightings in the 2020 311 calls data set, the same data used
+for previous visualizations. With no zoom, clusters of the rats are displayed in the visualization. After
+zooming in further, those clusters break into the individual rat sighting locations of which they consist.
+Rat sighting locations are represented by small rat icons on the map."),
+    p(class = "padding", align = "left", "This visualization allows viewers to identify densely rat populated locations on the map and relate that
+information to the data provided for restaurants in the same locations. In real time, such a map would
+be useful for avoidance of rat “hot spots” when choosing places to dine. It also allows users to explore
+which restaurants have practices that may be contributing to the rat problem the most, with lots of rat
+sightings nearby."),),
+    
+    fluidRow(
+      tags$style(".padding {
+                            margin-left:30px;
+                            margin-right:30px;
+                          }"),
+      tags$style(".leftAlign{float:left;}"),
+      align = "left",
+      div(class='padding',
+          h4("Data used:"),
+          h5(a("Rat sightings", href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9"), 
+             h6("Filtered to 311 calls from Jan 1 2020 to Dec 31 2020, of complaint type 'rodent' in Manhattan borough.
+Calls related to noise, parking violations, and other non-emergency police related matters are also
+excluded from this visualization.")),
+      ),
+      div(class='padding',
+          h4("Visualization:"),
+      ),
+      
+    ),
+    
+    
+
+    fluidRow(align = "center",
+             h3("Wordcloud of the descriptor variable of all NYC311 complaints in 2020"),
+             h6("Chart 11"),
+      img(src='Picture2.png',width="50%"),
+      p(class = "padding", align = "left", "For required text analysis, we have again referred to the 2020 rodent related 311 reports, specifically on
+the descriptor variable, where various notes are left on the nature or details of the complaint. Two word
+clouds are presented. The first is a basic wordcloud created with the ggwordcloud package. Words
+related to rat sightings are differentiated from others by color. Viewers can see in this wordcloud that
+the descriptor variable does have lots of mentions of rodent related issues. The second wordcloud
+presented is also from the ggwordcloud package, but with an added mask, intended to create a
+wordcloud the shape of a rat. This visualization is slightly more visually appealing, but reveals the exact
+same information to the reader. Rat sightings are often mentioned in the descriptor variable of the data
+set."),
+    ),
+    # fluidRow(
+    #   align = "center",
+    #   plotOutput("brendan_wc1"),
+    #   plotOutput("bendan_wc2"),
+    # ),
   ),
 )
 
@@ -530,7 +770,7 @@ server <- function(input, output, session) {
                                                                                                               #"purple", "#56a0d1"
                                                                                                               labels= c("Closed", "Pending", "In Progress","Assigned"),
                                                                                                               # "Open", "Draft"
-                                                                                                              title= "Case status",
+                                                                                                              title= "Complaint status",
                                                                                                               opacity = 1)
         
       })
@@ -837,7 +1077,7 @@ server <- function(input, output, session) {
         p_years <- ggplotly(
           ggplot(data=plot_this, aes(x=Year, y=Freq)) + geom_line(aes(color=case_status))
           #+ scale_colour_manual(name = 'Case status',values =c('green'='green','cadetblue' = 'cadetblue', 'orange'='orange', 'darkred'='darkred'), labels = c("closed","in progress", "assigned",'pending'))
-          + ggtitle('Case status trend') +  scale_x_continuous(breaks=seq(min_year, max_year, 1))
+          + ggtitle('Complaint status trend') +  scale_x_continuous(breaks=seq(min_year, max_year, 1))
           + theme(axis.title.y=element_blank(),
                 #axis.text.y=element_blank(),
                 axis.title.x=element_blank(),)
@@ -1001,6 +1241,59 @@ server <- function(input, output, session) {
   })
   
   # END OF PRATISHTA'S VISUALIZATIONS ------------------------------------------
+
+  # brendan's viz -----------------------------------------------------------
+
+  output$brendan_chart1 <- renderPlot({
+    
+    plot1 <- ggplot() + geom_bar(data=rat_borough, aes(x=borough, y=n), stat="identity", color="black", fill="darkred") + labs(title="2020 Rodent reports") + ylab("Number of 311 calls\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7)) 
+    
+    plot2 <- ggplot() + geom_bar(data=restaurant_borough, aes(x =Borough, y= n), stat="identity", color="black", fill = "darkorange") + labs(title="Outdoor restaurants") + ylab("Applications approved\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) + theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    
+    p_tmp1 <- grid.arrange(plot1, plot2, ncol=2)
+    print(p_tmp1)
+    #subplot(plot1, plot2,titleX = TRUE, titleY = TRUE,margin = 0.07)
+  })
+  
+  output$brendan_chart2 <- renderPlot({
+    plot3 <- ggplot() + geom_bar(data=inspection_count_2020, aes(x=BORO, y=n), stat="identity", color="black", fill="yellow") + ggtitle("B or C inspection scores") + ylab("Restaurants\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    
+    
+    plot4 <- ggplot() + geom_bar(data=count_street, aes(x=Borough, y=n), stat="identity", color="black", fill="lightblue") + labs(title="Street dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    
+    plot5 <- ggplot() + geom_bar(data=count_sidewalk, aes(x=Borough, y=n), stat="identity", color="black", fill= "tan") + labs(title="Sidewalk dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    
+    p_tmp2 <- grid.arrange(plot4, plot5, ncol=2)
+    print(p_tmp2)
+    #subplot(plot4,plot5,titleX = TRUE, titleY = TRUE,margin = 0.07, which_layout = "")
+    
+  })
+  
+  
+  output$brendan_map <- renderLeaflet({
+
+    
+    
+    interactive_map <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite,
+                                                      options = providerTileOptions(noWrap = TRUE)) %>% addCircleMarkers(data=manhattan_open, lng=~Longitude, lat=~Latitude, radius=1, color= "red", fillOpacity=1, popup=~paste('Restuarant:', manhattan_open$Restaurant.Name, '<br>', 'Street Dining?', manhattan_open$Approved.for.Roadway.Seating, '<br>', 'Sidewalk Dining?', manhattan_open$Approved.for.Sidewalk.Seating, '<br>')) %>%  addMarkers(data=manhattan_311,lng=~manhattan_311.Longitude, lat=~manhattan_311.Latitude, icon=icon, popup=~paste('Address:',manhattan_311$manhattan_311.Incident.Address,'<br>', 'Call Date:', manhattan_311$manhattan_311.Created.Date,'<br>','Descriptor:', manhattan_311$manhattan_311.Descriptor,'<br>'), clusterOptions= markerClusterOptions(disableClusteringAtZoom=16))  %>%
+      setView(lng = -73.98928, lat = 40.77042, zoom = 12)
+      
+      
+      
+      
+    })
+
+  # output$brendan_wc1 <- renderPlot({
+  #   (wordcloud1 <- ggplot(descriptors3, aes(label=word, size=n, color=col)) + geom_text_wordcloud_area(mask=img, rm_outside = TRUE) + scale_size_area(max_size=5) + theme_classic())
+  #   
+  # })
+  # 
+  # output$brendan_wc2 <- renderPlot({
+  #   (wordcloud2 <- ggplot(descriptors3, aes(label=word, size=n, color=col)) + geom_text_wordcloud_area() + scale_size_area())
+  #   
+  # })
+  
+  
 }
 
 shinyApp(ui = ui, server = server)
