@@ -2,6 +2,7 @@
 #library(rsconnect)
 #install.packages("shinyjs")
 
+options(scipen=999)
 
 # imports -----------------------------------------------------------------
 
@@ -166,10 +167,10 @@ ton_boro
 
 rat_ton <- left_join(rat_borough, ton_boro, by = c("Borough" = "BOROUGH"))
 
-rat <- ggplot(rat_ton, aes(y=n, x=Borough)) + 
+rat <- ggplot(rat_ton, aes(y=n, x=Borough, fill = Borough)) + 
   geom_bar(position="dodge", stat="identity")
 
-ton <- ggplot(rat_ton, aes(y=total_ton, x=Borough)) + 
+ton <- ggplot(rat_ton, aes(y=total_ton, x=Borough, fill = Borough)) + 
   geom_bar(position="dodge", stat="identity")
 
 # map data
@@ -285,6 +286,9 @@ rat_sightings_case_status <- as.character(unique(unlist(rat_sightings$Status)))
 
 ui <- fluidPage(
   
+
+# header description ------------------------------------------------------
+
   
   tags$head(
     # Note the wrapping of the string in HTML()
@@ -298,24 +302,64 @@ ui <- fluidPage(
   
   fluidRow(align = "center",
                 h1("Rats and NYC: Exploratory Visualization"),
-                strong("Data Visualization (QMSS - G5063) Final Project"),
+                strong("Data Visualization (QMSS - G5063) Final Project, Spring 2021"),
                 br(),
-                em("Group N: Brendan Mapes, Prajwal Seth, and Pratishta Yerakala"),),
+                em("Group N: Brendan Mapes, Prajwal Seth, and Pratishta Yerakala"),
+           br(),br(),br(),
+           p("General project description"),),
+br(),br(),br(),
+  
+
+# prajwal's description ---------------------------------------------------
+
+  
+  # fluidRow(
+  #   align = "center",
+  #   headerPanel("Hello 1!"),
+  #   p("p creates a paragraph of text."),
+  #   p("A new p() command starts a new paragraph. Supply a style attribute to change the format of the entire paragraph.", style = "font-family: 'times'; font-si16pt"),
+  #   strong("strong() makes bold text."),
+  #   em("em() creates italicized (i.e, emphasized) text."),
+  #   br(),
+  #   code("code displays your text similar to computer code"),
+  #   div("div creates segments of text with a similar style. This division of text is all blue because I passed the argument 'style = color:blue' to div", style = "color:blue"),
+  #   br(),
+  #   p("span does the same thing as div, but it works with",
+  #     span("groups of words", style = "color:blue"),
+  #     "that appear inside a paragraph."),
+  # ),
+
   fluidRow(
     align = "center",
-    headerPanel("Hello 1!"),
-    p("p creates a paragraph of text."),
-    p("A new p() command starts a new paragraph. Supply a style attribute to change the format of the entire paragraph.", style = "font-family: 'times'; font-si16pt"),
-    strong("strong() makes bold text."),
-    em("em() creates italicized (i.e, emphasized) text."),
+    style='margin-left:0px; margin-right: 0px;',
+    h2("Interactive map of rodent complaints in NYC since 2010"),
+    h3("Prajwal Seth"),
     br(),
-    code("code displays your text similar to computer code"),
-    div("div creates segments of text with a similar style. This division of text is all blue because I passed the argument 'style = color:blue' to div", style = "color:blue"),
-    br(),
-    p("span does the same thing as div, but it works with",
-      span("groups of words", style = "color:blue"),
-      "that appear inside a paragraph."),
+    
   ),
+  fluidRow(
+    tags$style(".padding {
+                              margin-left:30px;
+                              margin-right:30px;
+                            }"),
+    tags$style(".leftAlign{float:left;}"),
+    align = "left",
+    div(class='padding',
+        h4("Data used:"),
+        h5(a("Rat sightings (automatically updated daily)", href="https://data.cityofnewyork.us/Social-Services/Rat-Sightings/3q43-55fe"),
+        br(),
+         h4("Background:"),
+         p("Write something"),
+
+    ),
+    
+    
+  ),
+
+
+# sliders and map etc -----------------------------------------------------
+
+  
   
   fluidRow(
     sidebarLayout(position = "right",
@@ -547,6 +591,7 @@ increase in rat sightings. We explore this possibility a bit further in the next
              plotOutput("brendan_chart1", width = "80%"),
              plotOutput("brendan_chart2", width = "80%"),
              br(),
+             br(),
     p(class = "padding", align = "left", "In all four figures, we can see that Manhattan is far above the rest of the boroughs in restaurants
 approved for outdoor dining, in sidewalk and street dining. However, it is Brooklyn that is far above the
 rest of the boroughs in rodent reports in 2020. This suggests that perhaps another factor is contributing
@@ -584,6 +629,7 @@ will narrow our focus to Manhattan in the next visualization."),),),
     fluidRow(
       
       leafletOutput("brendan_map", height = 500, width = "100%"),
+      br(),
       br(),
       p(class = "padding", align = "left", "Based off exploratory analysis of the restaurants and rat reports across all boroughs, it’s clear
 Manhattan’s restaurant industry may be most closely linked to the rat problem than in other boroughs.
@@ -624,8 +670,14 @@ excluded from this visualization.")),
 
     fluidRow(align = "center",
              h3("Wordcloud of the descriptor variable of all NYC311 complaints in 2020"),
+             br(),
              h6("Chart 11"),
+      img(src='Capture.PNG',width="50%"),
+      br(),
+      h6("Chart 12"),
       img(src='Picture2.png',width="50%"),
+      br(),
+      br(),
       p(class = "padding", align = "left", "For required text analysis, we have again referred to the 2020 rodent related 311 reports, specifically on
 the descriptor variable, where various notes are left on the nature or details of the complaint. Two word
 clouds are presented. The first is a basic wordcloud created with the ggwordcloud package. Words
@@ -634,7 +686,7 @@ the descriptor variable does have lots of mentions of rodent related issues. The
 presented is also from the ggwordcloud package, but with an added mask, intended to create a
 wordcloud the shape of a rat. This visualization is slightly more visually appealing, but reveals the exact
 same information to the reader. Rat sightings are often mentioned in the descriptor variable of the data
-set."),
+set."),br(),br()
     ),
     # fluidRow(
     #   align = "center",
@@ -645,6 +697,7 @@ set."),
 )
 
   
+)
 # code for generating the plots  -----------------------------------------------------------------
 
 server <- function(input, output, session) {
@@ -799,6 +852,7 @@ server <- function(input, output, session) {
         tmp <- tmp[1:5,]
         ggplotly(tooltip = c("n"),
           ggplot(tmp, aes(x=Location.Type, y=n)) + geom_bar(stat="identity", aes(fill = Location.Type)) + ggtitle('Visible location types') + ylab("Visible location types") +
+            theme_light()+
             theme(axis.title.y=element_blank(),
                   #axis.text.y=element_blank(),
                   axis.title.x=element_blank(),
@@ -1077,7 +1131,7 @@ server <- function(input, output, session) {
         p_years <- ggplotly(
           ggplot(data=plot_this, aes(x=Year, y=Freq)) + geom_line(aes(color=case_status))
           #+ scale_colour_manual(name = 'Case status',values =c('green'='green','cadetblue' = 'cadetblue', 'orange'='orange', 'darkred'='darkred'), labels = c("closed","in progress", "assigned",'pending'))
-          + ggtitle('Complaint status trend') +  scale_x_continuous(breaks=seq(min_year, max_year, 1))
+          + ggtitle('Complaint status trend') +  scale_x_continuous(breaks=seq(min_year, max_year, 1)) + theme_light()
           + theme(axis.title.y=element_blank(),
                 #axis.text.y=element_blank(),
                 axis.title.x=element_blank(),)
@@ -1131,7 +1185,7 @@ server <- function(input, output, session) {
       geom_line(aes(color = Borough)) +
       geom_point(aes(color = Borough)) +
       xlab("Date by Months") +
-      ylab("Weight of Waste (Tons)")
+      ylab("Weight of Waste (Tons)") + theme_light()
     p
   })
   
@@ -1140,7 +1194,7 @@ server <- function(input, output, session) {
       geom_line(aes(color = Borough)) +
       geom_point(aes(color = Borough)) +
       xlab("Date by Months") +
-      ylab("Number of rat sightings")
+      ylab("Number of rat sightings") + theme_light()
     p
   })
   
@@ -1149,22 +1203,22 @@ server <- function(input, output, session) {
       geom_line(aes(color = Borough)) +
       geom_point(aes(color = Borough)) +
       xlab("Date by Months") +
-      ylab("Rate of rats per kiloton of waste")
+      ylab("Rate of rats per kiloton of waste") + theme_light()
     p
   })
   
   output$pratishta4 <- renderPlotly({
     ton +
       xlab("Boroughs") +
-      ylab("Weight of Waste (Tons)")
-    
+      ylab("Weight of Waste (Tons)") + theme_light()
+
   })
   
   output$pratishta5 <- renderPlotly({
     rat +
       xlab("Boroughs") +
-      ylab("Number of Rat Sightings")
-    
+      ylab("Number of Rat Sightings") + theme_light()
+
   })
   
   output$pratishta7 <- renderTmap({
@@ -1246,9 +1300,9 @@ server <- function(input, output, session) {
 
   output$brendan_chart1 <- renderPlot({
     
-    plot1 <- ggplot() + geom_bar(data=rat_borough, aes(x=borough, y=n), stat="identity", color="black", fill="darkred") + labs(title="2020 Rodent reports") + ylab("Number of 311 calls\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7)) 
+    plot1 <- ggplot() +theme_light(base_size = 18) + geom_bar(data=rat_borough, aes(x=borough, y=n), stat="identity", color="black", fill="darkred") + labs(title="2020 Rodent reports") + ylab("Number of 311 calls\n") + xlab("\nBorough")  + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7)) 
     
-    plot2 <- ggplot() + geom_bar(data=restaurant_borough, aes(x =Borough, y= n), stat="identity", color="black", fill = "darkorange") + labs(title="Outdoor restaurants") + ylab("Applications approved\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) + theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    plot2 <- ggplot() + theme_light(base_size = 18)+geom_bar(data=restaurant_borough, aes(x =Borough, y= n), stat="identity", color="black", fill = "darkorange") + labs(title="Outdoor restaurants") + ylab("Applications approved\n") + xlab("\nBorough") + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) + theme(axis.text.x = element_text(angle = 40, vjust=.7))
     
     p_tmp1 <- grid.arrange(plot1, plot2, ncol=2)
     print(p_tmp1)
@@ -1256,12 +1310,12 @@ server <- function(input, output, session) {
   })
   
   output$brendan_chart2 <- renderPlot({
-    plot3 <- ggplot() + geom_bar(data=inspection_count_2020, aes(x=BORO, y=n), stat="identity", color="black", fill="yellow") + ggtitle("B or C inspection scores") + ylab("Restaurants\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    plot3 <- ggplot() + theme_light(base_size = 18) + geom_bar(data=inspection_count_2020, aes(x=BORO, y=n), stat="identity", color="black", fill="yellow") + ggtitle("B or C inspection scores") + ylab("Restaurants\n") + xlab("\nBorough")  + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
     
     
-    plot4 <- ggplot() + geom_bar(data=count_street, aes(x=Borough, y=n), stat="identity", color="black", fill="lightblue") + labs(title="Street dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    plot4 <- ggplot() + theme_light(base_size = 18) + geom_bar(data=count_street, aes(x=Borough, y=n), stat="identity", color="black", fill="lightblue") + labs(title="Street dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
     
-    plot5 <- ggplot() + geom_bar(data=count_sidewalk, aes(x=Borough, y=n), stat="identity", color="black", fill= "tan") + labs(title="Sidewalk dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme_economist() + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    plot5 <- ggplot() + theme_light(base_size = 18) + geom_bar(data=count_sidewalk, aes(x=Borough, y=n), stat="identity", color="black", fill= "tan") + labs(title="Sidewalk dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
     
     p_tmp2 <- grid.arrange(plot4, plot5, ncol=2)
     print(p_tmp2)
