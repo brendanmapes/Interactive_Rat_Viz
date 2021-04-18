@@ -1,11 +1,13 @@
 #install.packages('rsconnect')
 #library(rsconnect)
+#install.packages("shinyjs")
 
 
 # imports -----------------------------------------------------------------
 
 
 library(shiny)
+library(shinyjs)
 library(leaflet)
 library(RColorBrewer)
 library(scales)
@@ -43,22 +45,19 @@ library(pals)
 # Download the data from https://data.cityofnewyork.us/api/views/3q43-55fe/rows.csv?accessType=DOWNLOAD
 # Alternate link: https://data.cityofnewyork.us/Social-Services/Rat-Sightings/3q43-55fe, click Export -> CSV
 
-#rat_sightings <- read.csv("data/Rat_Sightings.csv")
 rat_sightings <- read.csv("https://data.cityofnewyork.us/api/views/3q43-55fe/rows.csv?accessType=DOWNLOAD")
+#rat_sightings <- read.csv("data/Rat_Sightings.csv")
+rat_sightings <- rat_sightings %>% filter(!(Status=='Open'))
+rat_sightings <- rat_sightings %>% filter(!(Status=='Draft'))
+rat_sightings <- rat_sightings %>% filter(!(Borough=='Unspecified'))
+
+
 
 rat_sightings$latitude <- rat_sightings$Latitude
 rat_sightings$longitude <- rat_sightings$Longitude
 
 #set.seed(100)
-rat_sightings_sample <- rat_sightings[sample.int(nrow(rat_sightings), 20000),]
-#rat_sightings_sample <- rat_sightings
-latitude_colnum <- grep('latitude', colnames(rat_sightings_sample))
-longitude_colnum <- grep('longitude', colnames(rat_sightings_sample))
-rat_sightings_sample <- rat_sightings_sample[complete.cases(rat_sightings_sample[,latitude_colnum:longitude_colnum]),]
-rat_sightings_sample$year_created <- year(parse_date_time(rat_sightings_sample$Created.Date, '%m/%d/%y %I:%M:%S %p'))
 
-rat_sightings_buroughs <- as.character(unique(unlist(rat_sightings_sample$Borough)))
-rat_sightings_case_status <- as.character(unique(unlist(rat_sightings_sample$Status)))
 
 
 #c("BROOKLYN", "QUEENS","STATEN ISLAND")
@@ -292,6 +291,8 @@ nyc_sp@data
 
 # user interface for setting layout of plots ----------------------------------------------------------
 
+rat_sightings_buroughs <- as.character(unique(unlist(rat_sightings$Borough)))
+rat_sightings_case_status <- as.character(unique(unlist(rat_sightings$Status)))
 
 ui <- fluidPage(
   fluidRow(
@@ -311,7 +312,10 @@ ui <- fluidPage(
   ),
   fluidRow(style='margin-right:0px;',
     sidebarLayout(
-      sidebarPanel(width = 5, style='margin-right:0px;',
+      sidebarPanel(width = 6, style='margin-right:0px;',
+        sliderInput("num_sample", label = h4("Select number of samples"), min = 1,
+                               max = nrow(rat_sightings), value = 10000, step = 1000),
+        
         sliderInput("year_input", label = h4("Select years"), min = 2010,
                     max = 2021, value = c(2010, 2021), step = 1, format = "####"),
         
@@ -319,17 +323,21 @@ ui <- fluidPage(
         #selected = rat_sightings_buroughs[1:length(multiInput)])
         #selected = rat_sightings_buroughs, 
         
+        
+        
         selectizeInput("burough_input", label=h4("Select boroughs"), choices =rat_sightings_buroughs, multiple = TRUE, selected = rat_sightings_buroughs),
         selectizeInput("case_status", label=h4("Select status"), choices =rat_sightings_case_status, multiple = TRUE, selected = rat_sightings_case_status),
         
         #plotlyOutput("cityViz", height = 300),
   
-        plotlyOutput("yearViz", height = 300),
+        plotlyOutput("yearViz", height = 190),
+        plotlyOutput("locationViz", height = 220),
+        
   
         #plotlyOutput("locationViz", height = 300),
       ),
-      mainPanel(width = 7,
-        leafletOutput("map", height = 700),
+      mainPanel(width = 6,
+        leafletOutput("map", height = 825),
       )
     ),
   ),
@@ -423,141 +431,457 @@ server <- function(input, output, session) {
     max_year <- input$year_input[2]
     burough <- input$burough_input
     case_status1 <- input$case_status
+    
+    rat_sightings_sample <- rat_sightings[sample.int(nrow(rat_sightings), input$num_sample),]
+    #rat_sightings_sample <- rat_sightings
+    latitude_colnum <- grep('latitude', colnames(rat_sightings_sample))
+    longitude_colnum <- grep('longitude', colnames(rat_sightings_sample))
+    rat_sightings_sample <- rat_sightings_sample[complete.cases(rat_sightings_sample[,latitude_colnum:longitude_colnum]),]
+    rat_sightings_sample$year_created <- year(parse_date_time(rat_sightings_sample$Created.Date, '%m/%d/%y %I:%M:%S %p'))
+    
+    
+    
+    
+    
     #print('buroughh')
     #print(burough)
     #filter_rat_sightings <- rat_sightings_sample %>% filter(year_created >= min_year, year_created <= max_year, Borough %in% burough)
-    filter_rat_sightings <- rat_sightings_sample %>% filter(year_created >= min_year, year_created <= max_year)
+    check_rows_of_filter <- nrow(rat_sightings_sample %>% filter(year_created >= min_year, year_created <= max_year, 
+                                                                 Borough %in% burough,
+                                                                 Status %in% case_status1))
+    
+    rat_sightings_buroughs2 <- as.character(unique(unlist(rat_sightings_sample$Borough)))
+    rat_sightings_case_status2 <- as.character(unique(unlist(rat_sightings_sample$Status)))
+    
+    # print('buroughs 2')
+    # print(rat_sightings_buroughs2)
+    # print('case statuses 2')
+    # print(rat_sightings_case_status2)
+    
+    if (check_rows_of_filter <= 0){
+      
+      #updateSliderInput(session, "year_input", value = c(2010, 2021))
+      #updateSliderInput(session, "burough_input", value = rat_sightings_buroughs2)
+      #updateSliderInput(session, "case_status", value = rat_sightings_case_status2)
+      
+      
+      # filter_rat_sightings2 <- rat_sightings_sample
+      # reset("year_input")
+      # reset("burough_input")
+      # reset("burough_input")
+      # print('in the case of 0 rows, resetting to entire df')
+      leaflet() %>%
+        addProviderTiles(providers$Stamen.TonerLite,
+                         options = providerTileOptions(noWrap = TRUE)
+        ) %>%
+        setView(lng = -73.98928, lat = 40.75042, zoom = 10)
+    }
+    else{
+      filter_rat_sightings2 <- rat_sightings_sample %>% filter(year_created >= min_year, year_created <= max_year,
+                                                               Borough %in% burough,
+                                                               Status %in% case_status1)
+      filter_rat_sightings <- filter_rat_sightings2
+      
+      
+      getColor <- function(filter_rat_sightings, i) {
+        if(filter_rat_sightings$Status[i] == "Closed") {
+          "green"
+        } 
+        else if(filter_rat_sightings$Status[i] == "In Progress") {
+          "lightblue"
+        } 
+        else if(filter_rat_sightings$Status[i] == "Assigned") {
+          "orange"
+        }
+        else if(filter_rat_sightings$Status[i] == "Open") {
+          "purple"
+        }
+        else if(filter_rat_sightings$Status[i] == "Pending") {
+          "darkred"
+        }
+        else if(filter_rat_sightings$Status[i] == "Draft") {
+          "blue"
+        }}
+      
+      markerColors <- rep(NA, nrow(filter_rat_sightings))
+      
+      for (i in 1:nrow(filter_rat_sightings)){
+        markerColors[i] <- getColor(filter_rat_sightings, i)
+      }
+      
+      
+      icons <- awesomeIcons(
+        icon = 'ios-close',
+        iconColor = 'cadetblue',
+        library = 'ion',
+        markerColor = markerColors
+      )
+      
+      
+      output$map <- renderLeaflet({
+        leaflet(data = filter_rat_sightings) %>%
+          addProviderTiles(providers$Stamen.TonerLite,
+                           options = providerTileOptions(noWrap = TRUE)
+          ) %>%
+          setView(lng = -73.98928, lat = 40.75042, zoom = 10) %>%
+          addAwesomeMarkers( ~longitude, ~latitude, clusterOptions = markerClusterOptions() ,icon = icons, 
+                             popup = as.character(paste('Created date:', filter_rat_sightings$Created.Date,'<br>',
+                                                        'Closed Date:', filter_rat_sightings$Closed.Date,'<br>',
+                                                        #'Complaint type:',filter_rat_sightings$Complaint.Type,'<br>',
+                                                        #'Descriptor:',filter_rat_sightings$Descriptor,'<br>',
+                                                        'Address:',filter_rat_sightings$Incident.Address,'<br>',
+                                                        'Status:', filter_rat_sightings$Status, '<br>',
+                                                        'Location Type:', filter_rat_sightings$Location.Type))) %>%
+          addHeatmap( ~longitude, ~latitude, group = "heat",max=1, blur = 45, minOpacity = 0.8) %>% addLegend("topleft", 
+                                                                                                              colors =c('green', "darkred", "lightblue", "orange"),
+                                                                                                              #"purple", "#56a0d1"
+                                                                                                              labels= c("Closed", "Pending", "In Progress","Assigned"),
+                                                                                                              # "Open", "Draft"
+                                                                                                              title= "Case status",
+                                                                                                              opacity = 1)
+        
+      })
+      
+      output$cityViz <- renderPlotly({
+        if (nrow(zipsInBounds()) == 0)
+          return(NULL)
+        
+        tmp <- (zipsInBounds() %>% count(City))
+        tmp <- tmp[order(-tmp$n),]
+        tmp <- tmp[1:5,]
+        ggplotly(
+          ggplot(tmp, aes(x=City, y=n, fill = City)) + geom_bar(stat="identity") + ylab("Top 5 visible buroughs") + theme(legend.position = "none") + scale_color_brewer(palette="Dark2")+
+            theme(axis.title.x=element_blank(),
+                  axis.ticks.x=element_blank())
+        )
+      })
+      
+      
+      output$locationViz <- renderPlotly({
+        if (nrow(zipsInBounds()) == 0)
+          return(NULL)
+        
+        tmp <- (zipsInBounds() %>% count(Location.Type))
+        tmp <- tmp[order(-tmp$n),]
+        tmp <- tmp[1:5,]
+        ggplotly(tooltip = c("n"),
+          ggplot(tmp, aes(x=Location.Type, y=n)) + geom_bar(stat="identity", aes(fill = Location.Type)) + ylab("Visible location types") +
+            theme(axis.title.y=element_blank(),
+                  #axis.text.y=element_blank(),
+                  axis.title.x=element_blank(),
+                  axis.text.x=element_blank(),
+                  axis.ticks.x=element_blank()) + labs(fill = "Visible location types")
+        )
+      })
+      
+      output$yearViz <- renderPlotly({
+        if (nrow(zipsInBounds()) == 0)
+          return(NULL)
+        
+        
+        # total cases
+        
+        created_date_sample <- data.table(zipsInBounds()$Created.Date)
+        created_date_sample$dates <- parse_date_time(created_date_sample$V1, '%m/%d/%y %I:%M:%S %p')
+        plot_created_year <- data.frame(table(year(date(created_date_sample$dates))))
+        
+        for (i in 2010:2021){
+          if ((i %in% plot_created_year$Var1)==FALSE) {
+            #print(i)
+            tmp_df <- data.frame(toString(i), 0)
+            names(tmp_df) <- c('Var1','Freq')
+            plot_created_year <- rbind(plot_created_year, tmp_df)
+          }
+        }
+        
+        plot_created_year$Var1 <- as.numeric(as.character(plot_created_year$Var1))
+        names(plot_created_year)[names(plot_created_year) == "Var1"] <- "Year"
+        plot_created_year <- plot_created_year[order(plot_created_year$Year),]
+        plot_created_year <- filter(plot_created_year, Year >= min_year, Year <= max_year)
+        plot_created_year$case_status <- 'Total'
+        
+        # closed cases
+        
+        plot_closed<- filter(zipsInBounds(), Status == 'Closed')
+        flag_closed <- 0
+        if (nrow(plot_closed) == 0) {
+          flag_closed <- 1
+        }
+        if (flag_closed == 0){
+          plot_closed <- data.table(plot_closed$Created.Date)
+          plot_closed$dates <- parse_date_time(plot_closed$V1, '%m/%d/%y %I:%M:%S %p')
+          plot_closed_year <- data.frame(table(year(date(plot_closed$dates))))
+          #print(plot_closed_year)
+          
+          
+          for (i in 2010:2021){
+            if ((i %in% plot_closed_year$Var1)==FALSE) {
+              tmp_df <- data.frame(toString(i), 0)
+              names(tmp_df) <- colnames(plot_closed_year)
+              plot_closed_year <- rbind(plot_closed_year, tmp_df)
+            }
+          }
+          
+          
+          plot_closed_year$Var1 <- as.numeric(as.character(plot_closed_year$Var1))
+          names(plot_closed_year)[names(plot_closed_year) == "Var1"] <- "Year"
+          plot_closed_year <- plot_closed_year[order(plot_closed_year$Year),]
+          plot_closed_year <- filter(plot_closed_year, Year >= min_year, Year <= max_year)
+          plot_closed_year$case_status <- 'Closed'
+        }
+        
+        
+        # assigned cases
+        
+        plot_assigned<- filter(zipsInBounds(), Status == 'Assigned')
+        flag_assigned <- 0
+        if (nrow(plot_assigned) == 0) {
+          flag_assigned <- 1
+        }
+        if (flag_assigned == 0){
+          plot_assigned <- data.table(plot_assigned$Created.Date)
+          plot_assigned$dates <- parse_date_time(plot_assigned$V1, '%m/%d/%y %I:%M:%S %p')
+          plot_assigned_year <- data.frame(table(year(date(plot_assigned$dates))))
+          #print(plot_assigned_year)
+          
+          
+          for (i in 2010:2021){
+            if ((i %in% plot_assigned_year$Var1)==FALSE) {
+              tmp_df <- data.frame(toString(i), 0)
+              names(tmp_df) <- colnames(plot_assigned_year)
+              plot_assigned_year <- rbind(plot_assigned_year, tmp_df)
+            }
+          }
+          
+          
+          plot_assigned_year$Var1 <- as.numeric(as.character(plot_assigned_year$Var1))
+          names(plot_assigned_year)[names(plot_assigned_year) == "Var1"] <- "Year"
+          plot_assigned_year <- plot_assigned_year[order(plot_assigned_year$Year),]
+          plot_assigned_year <- filter(plot_assigned_year, Year >= min_year, Year <= max_year)
+          plot_assigned_year$case_status <- 'Assigned'
+          #print('assigned or in progress')
+          #print(plot_assigned_year)
+        }
+        
+        # assigned or in progress cases
+        
+        plot_in_progress<- filter(zipsInBounds(), Status == 'In Progress')
+        flag_in_progress <- 0
+        if (nrow(plot_in_progress) == 0) {
+          flag_in_progress <- 1
+        }
+        if (flag_in_progress == 0){
+          plot_in_progress <- data.table(plot_in_progress$Created.Date)
+          plot_in_progress$dates <- parse_date_time(plot_in_progress$V1, '%m/%d/%y %I:%M:%S %p')
+          plot_in_progress_year <- data.frame(table(year(date(plot_in_progress$dates))))
+          #print(plot_in_progress_year)
+          
+          
+          for (i in 2010:2021){
+            if ((i %in% plot_in_progress_year$Var1)==FALSE) {
+              tmp_df <- data.frame(toString(i), 0)
+              names(tmp_df) <- colnames(plot_in_progress_year)
+              plot_in_progress_year <- rbind(plot_in_progress_year, tmp_df)
+            }
+          }
+          
+          
+          plot_in_progress_year$Var1 <- as.numeric(as.character(plot_in_progress_year$Var1))
+          names(plot_in_progress_year)[names(plot_in_progress_year) == "Var1"] <- "Year"
+          plot_in_progress_year <- plot_in_progress_year[order(plot_in_progress_year$Year),]
+          plot_in_progress_year <- filter(plot_in_progress_year, Year >= min_year, Year <= max_year)
+          plot_in_progress_year$case_status <- 'In Progress'
+          #print('assigned or in progress')
+          #print(plot_in_progress_year)
+        }
+        
+        
+        
+        # open cases
+        
+        plot_open<- filter(zipsInBounds(), Status == 'Open')
+        flag_open <- 0
+        if (nrow(plot_open) == 0) {
+          flag_open <- 1
+        }
+        
+        if (flag_open == 0){
+          
+          plot_open <- data.table(plot_open$Created.Date)
+          plot_open$dates <- parse_date_time(plot_open$V1, '%m/%d/%y %I:%M:%S %p')
+          plot_open_year <- data.frame(table(year(date(plot_open$dates))))
+          #print(plot_open_year)
+          
+          
+          for (i in 2010:2021){
+            if ((i %in% plot_open_year$Var1)==FALSE) {
+              tmp_df <- data.frame(toString(i), 0)
+              names(tmp_df) <- colnames(plot_open_year)
+              plot_open_year <- rbind(plot_open_year, tmp_df)
+            }
+          }
+          
+          
+          plot_open_year$Var1 <- as.numeric(as.character(plot_open_year$Var1))
+          names(plot_open_year)[names(plot_open_year) == "Var1"] <- "Year"
+          plot_open_year <- plot_open_year[order(plot_open_year$Year),]
+          plot_open_year <- filter(plot_open_year, Year >= min_year, Year <= max_year)
+          plot_open_year$case_status <- 'Open'
+          #print('open or pending')
+          #print(plot_open_year)
+          
+          
+          # print('created')
+          # print(plot_created_year)
+          # print('closed')
+          # print(plot_closed_year)
+          # print('combined')
+        }
+        
+        # pending cases
+        
+        plot_pending<- filter(zipsInBounds(), Status == 'Pending')
+        flag_pending <- 0
+        if (nrow(plot_pending) == 0) {
+          flag_pending <- 1
+        }
+        
+        if (flag_pending == 0){
+          
+          plot_pending <- data.table(plot_pending$Created.Date)
+          plot_pending$dates <- parse_date_time(plot_pending$V1, '%m/%d/%y %I:%M:%S %p')
+          plot_pending_year <- data.frame(table(year(date(plot_pending$dates))))
+          #print(plot_pending_year)
+          
+          
+          for (i in 2010:2021){
+            if ((i %in% plot_pending_year$Var1)==FALSE) {
+              tmp_df <- data.frame(toString(i), 0)
+              names(tmp_df) <- colnames(plot_pending_year)
+              plot_pending_year <- rbind(plot_pending_year, tmp_df)
+            }
+          }
+          
+          
+          plot_pending_year$Var1 <- as.numeric(as.character(plot_pending_year$Var1))
+          names(plot_pending_year)[names(plot_pending_year) == "Var1"] <- "Year"
+          plot_pending_year <- plot_pending_year[order(plot_pending_year$Year),]
+          plot_pending_year <- filter(plot_pending_year, Year >= min_year, Year <= max_year)
+          plot_pending_year$case_status <- 'Pending'
+          #print('open or pending')
+          #print(plot_pending_year)
+          
+          
+          # print('created')
+          # print(plot_created_year)
+          # print('closed')
+          # print(plot_closed_year)
+          # print('combined')
+        }
+        
+        
+        #plot_this <- plot_created_year
+        plot_this <- data.frame(matrix(ncol = 3, nrow = 0))
+        colnames(plot_this) <- c("Year",'Freq','case_status')
+        rownames(plot_created_year)
+        
+        # print('flag open')
+        # print(flag_open)
+        # print('flag pending')
+        # print(flag_pending)
+        # print('flag assigned')
+        # print(flag_assigned)
+        # print('flag in progress')
+        # print(flag_in_progress)
+        # print('flag closed')
+        # print(flag_closed)
+        
+        if (flag_open == 0){
+          plot_this <- rbind(plot_this, plot_open_year)
+        }
+        if (flag_pending == 0){
+          plot_this <- rbind(plot_this, plot_pending_year)
+        }
+        
+        if (flag_assigned == 0) {
+          plot_this <- rbind(plot_this, plot_assigned_year)
+        }
+        if (flag_in_progress == 0) {
+          plot_this <- rbind(plot_this, plot_in_progress_year)
+        }
+        if (flag_closed == 0){
+          plot_this <- rbind(plot_this, plot_closed_year)
+        }
+        #print(plot_this)
+        
+        # p_years <- ggplotly(
+        #   ggplot(data=plot_created_year, aes(x=Year, y=Freq)) + geom_path(stat="identity") + ylab('Rat sightings') + geom_point()+
+        #     theme(axis.title.x=element_blank()) +  scale_x_continuous(breaks=seq(min_year, max_year, 1))
+        # )
+        colors_for_case_status <- rep(NA, nrow(plot_this))
+        for (i in 1:nrow(plot_this)){
+          if (plot_this$case_status[i] == "Closed"){
+            colors_for_case_status[i] <- "green"
+          }
+          else if (plot_this$case_status[i] == "Pending"){
+            colors_for_case_status[i] <- "darkred"
+          }
+          else if (plot_this$case_status[i] == "Assigned"){
+            colors_for_case_status[i] <- "orange"
+          }
+          else if (plot_this$case_status[i] == "In Progress"){
+            colors_for_case_status[i] <- "cadetblue"
+          }
+          else if (plot_this$case_status[i] == "Draft"){
+            colors_for_case_status[i] <- "blue"
+          }
+          else if (plot_this$case_status[i] == "Open"){
+            colors_for_case_status[i] <- "purple"
+          }
+          
+        }
+        
+        p_years <- ggplotly(
+          ggplot(data=plot_this, aes(x=Year, y=Freq)) + geom_line(aes(color=case_status))
+          #+ scale_colour_manual(name = 'Case status',values =c('green'='green','cadetblue' = 'cadetblue', 'orange'='orange', 'darkred'='darkred'), labels = c("closed","in progress", "assigned",'pending'))
+          + ylab('Trend in visible area') +  scale_x_continuous(breaks=seq(min_year, max_year, 1)) + labs(color='Status') 
+          +
+            theme(axis.title.x=element_blank())
+          
+        )
+      })
+      
+      zipsInBounds <- reactive({
+        if (is.null(input$map_bounds))
+          return(zipdata[FALSE,])
+        bounds <- input$map_bounds
+        #print(bounds)
+        latRng <- range(bounds$north, bounds$south)
+        lngRng <- range(bounds$east, bounds$west)
+        #print(latRng)
+        
+        subset(filter_rat_sightings,
+               latitude >= latRng[1] & latitude <= latRng[2] &
+                 longitude >= lngRng[1] & longitude <= lngRng[2])
+      })
+      
+    }
+    
     #filter_rat_sightings <- filter_rat_sightings[,burough]
-    filter_rat_sightings <- filter_rat_sightings %>% filter(Borough %in% burough)
-    filter_rat_sightings <- filter_rat_sightings %>% filter(Status %in% case_status1)
+
     # if (nrow(event_data("plotly_selecting"))>0){
     #   filter_rat_sightings <- filter_rat_sightings %>% filter(year_created %in% event_data("plotly_selecting")$Var1)
     # }
     
-    
-    getColor <- function(filter_rat_sightings, i) {
-      if(filter_rat_sightings$Status[i] == "Closed") {
-        "green"
-      } else if(filter_rat_sightings$Status[i] == "In Progress" | filter_rat_sightings$Status[i] == "Assigned") {
-        "orange"
-      } else {
-        "red"
-      }}
-    
-    markerColors <- rep(NA, nrow(filter_rat_sightings))
-    
-    for (i in 1:nrow(filter_rat_sightings)){
-      markerColors[i] <- getColor(filter_rat_sightings, i)
-    }
-    
-    
-    icons <- awesomeIcons(
-      icon = 'ios-close',
-      iconColor = 'black',
-      library = 'ion',
-      markerColor = markerColors
-    )
-    
-    
-    output$map <- renderLeaflet({
-      leaflet(data = filter_rat_sightings) %>%
-        addProviderTiles(providers$Stamen.TonerLite,
-                         options = providerTileOptions(noWrap = TRUE)
-        ) %>%
-        setView(lng = -73.98928, lat = 40.75042, zoom = 10) %>%
-        addAwesomeMarkers( ~longitude, ~latitude, clusterOptions = markerClusterOptions() ,icon = icons, 
-                           popup = as.character(paste('Created date:', filter_rat_sightings$Created.Date,'<br>',
-                                                      'Complaint type:',filter_rat_sightings$Complaint.Type,'<br>',
-                                                      'Descriptor:',filter_rat_sightings$Descriptor,'<br>',
-                                                      'Address:',filter_rat_sightings$Incident.Address,'<br>',
-                                                      'Status:', filter_rat_sightings$Status, '<br>',
-                                                      'Location type:', filter_rat_sightings$Location.Type))) %>%
-        addHeatmap( ~longitude, ~latitude, group = "heat",max=1, blur = 45, minOpacity = 0.8) %>% addLegend("topleft", 
-                                                                                          colors =c('green',  "orange", "red"),
-                                                                                          labels= c("Closed", "In Progress/Assigned","Open/Pending"),
-                                                                                          title= "Case status",
-                                                                                          opacity = 1)
-      
-    })
-    
-    output$cityViz <- renderPlotly({
-      if (nrow(zipsInBounds()) == 0)
-        return(NULL)
-      
-      tmp <- (zipsInBounds() %>% count(City))
-      tmp <- tmp[order(-tmp$n),]
-      tmp <- tmp[1:5,]
-      ggplotly(
-        ggplot(tmp, aes(x=City, y=n, fill = City)) + geom_bar(stat="identity") + ylab("Top 5 visible buroughs") + theme(legend.position = "none") + scale_color_brewer(palette="Dark2")+
-          theme(axis.title.x=element_blank(),
-                axis.ticks.x=element_blank())
-      )
-    })
-    
-    
-    output$locationViz <- renderPlotly({
-      if (nrow(zipsInBounds()) == 0)
-        return(NULL)
-      
-      tmp <- (zipsInBounds() %>% count(Location.Type))
-      tmp <- tmp[order(-tmp$n),]
-      tmp <- tmp[1:5,]
-      ggplotly(
-        ggplot(tmp, aes(x=Location.Type, y=n, fill = Location.Type, show.legend = FALSE)) + geom_bar(stat="identity") + ylab("Visible location types") +
-          theme(axis.title.y=element_blank(),
-                axis.text.y=element_blank(),
-                axis.title.x=element_blank(),
-                axis.text.x=element_blank(),
-                axis.ticks.x=element_blank())
-      )
-    })
-    
-    output$yearViz <- renderPlotly({
-      if (nrow(zipsInBounds()) == 0)
-        return(NULL)
-      
-      created_date_sample <- data.table(zipsInBounds()$Created.Date)
-      created_date_sample$dates <- parse_date_time(created_date_sample$V1, '%m/%d/%y %I:%M:%S %p')
-      plot_created_year <- data.frame(table(year(date(created_date_sample$dates))))
-      for (i in 2010:2021){
-        if ((i %in% plot_created_year$Var1)==FALSE) {
-          #print(i)
-          tmp_df <- data.frame(toString(i), 0)
-          names(tmp_df) <- c('Var1','Freq')
-          plot_created_year <- rbind(plot_created_year, tmp_df)
-        }
-      }
-      plot_created_year$Var1 <- as.numeric(as.character(plot_created_year$Var1))
-      names(plot_created_year)[names(plot_created_year) == "Var1"] <- "Year"
-      plot_created_year <- plot_created_year[order(plot_created_year$Year),]
-      #plot_created_year <- filter(plot_created_year, Var1 != 2021)
-      plot_created_year <- filter(plot_created_year, Year >= min_year, Year <= max_year)
-      
-      p_years <- ggplotly(
-        ggplot(data=plot_created_year, aes(x=Year, y=Freq)) + geom_path(stat="identity") + ylab('Rat sightings') + geom_point()+
-          theme(axis.title.x=element_blank()) +  scale_x_continuous(breaks=seq(min_year, max_year, 1))
-      )
-    })
-    
-    zipsInBounds <- reactive({
-      if (is.null(input$map_bounds))
-        return(zipdata[FALSE,])
-      bounds <- input$map_bounds
-      #print(bounds)
-      latRng <- range(bounds$north, bounds$south)
-      lngRng <- range(bounds$east, bounds$west)
-      #print(latRng)
-      
-      subset(filter_rat_sightings,
-             latitude >= latRng[1] & latitude <= latRng[2] &
-               longitude >= lngRng[1] & longitude <= lngRng[2])
-    })
+    #print('reached here')
+    #print(filter_rat_sightings)
+    #print('end reached here')
+
     
   })
   
   
-  
-  
+
   
 
 # pratishta's viz ---------------------------------------------------------
@@ -684,6 +1008,9 @@ server <- function(input, output, session) {
   })
   
 
+
+  
+  
 
   
   
