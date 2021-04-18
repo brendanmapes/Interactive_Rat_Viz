@@ -300,12 +300,12 @@ ui <- fluidPage(
     # descriptive charts 
     h3("Total Number of Rat Sightings (2020-2021)"),
     h6("Chart 1"),
-    plotlyOutput("pratishta4", width = "50%"),
+    plotlyOutput("pratishta5", width = "50%"),
     br(),
     
     h3("Total Waste Produced (2020-2021)"),
     h6("Chart 2"),
-    plotlyOutput("pratishta5", width = "50%"),
+    plotlyOutput("pratishta4", width = "50%"),
     br(),
     
     p(class = "padding", align = "left", "We can see  in Chart 1 that Brooklyn produces the most tons of waste followed by
