@@ -305,8 +305,18 @@ ui <- fluidPage(
                 strong("Data Visualization (QMSS - G5063) Final Project, Spring 2021"),
                 br(),
                 em("Group N: Brendan Mapes, Prajwal Seth, and Pratishta Yerakala"),
+           h3(a("Link to code and process book", href="https://github.com/QMSS-G5063-2021/Group_N_NYCdata")),
+              
            br(),br(),br(),
-           p("General project description"),),
+           p("In this project, we will explore in detail New York City's rat problem. 
+             New York has always dealt with a relatively high population of rats, as do many 
+             other large metropolitan areas. However, since the beginning of the COVID-19 pandemic 
+             rat sightings have been on the rise. Rats are being seen more often, during new times of day, 
+             and are acting more aggressive. Through the following visualizations we hope to find some explanation 
+             for this recent uptick in rat sightings. The way restaurants and residents handle their trash plays 
+             a large role in the survival and behavior of rats in the city. So through exploration of city 
+             sanitation data, restaurant registration data, and 311 calls in the city, we hope to find some 
+             potential explanations as to why New York's rat problem has gotten so bad."),),
 br(),br(),br(),
   
 
@@ -349,7 +359,17 @@ br(),br(),br(),
         h5(a("Rat sightings (automatically updated daily)", href="https://data.cityofnewyork.us/Social-Services/Rat-Sightings/3q43-55fe"),
         br(),
          h4("Background:"),
-         p("Write something"),
+         p("In this section, I have visualized rodent complaints from 2010 till today submitted to the NYC311 portal.
+           Feel free to play around with the provided filters for number of samples,
+           years, boroughs, and case status (however, due to processing constraints on shinyapps.io,
+           the website will crash if you set the number of samples too high). The map on the left will dynamically update as you
+           change the filters (or will not update if there is no data to display after the filters are applied).
+           The plots for the trend in complaint status and location types also update according to the
+           rat complaints that are visible in the map. Upon zooming into the map, you will see that the color of the
+           marker for each complaint is set according to the complaint status (refer to the legend of the map). 
+           Also provided is a tooltip displaying the complaint's created date, closed date, address, status, and
+           location type. There is a layer of heat added to the map, with the intensity of the heat
+           being calculated based on the number of rat sightings in the area."),
 
     ),
     
@@ -366,7 +386,7 @@ br(),br(),br(),
       
       sidebarPanel(width = 6, 
         sliderInput("num_sample", label = h4("Select number of random samples"), min = 1,
-                               max = nrow(rat_sightings), value = 10000, step = 1000),
+                               max = nrow(rat_sightings), value = 1000, step = 1000),
         
         sliderInput("year_input", label = h4("Select years"), min = 2010,
                     max = 2021, value = c(2010, 2021), step = 1, format = "####"),
@@ -676,6 +696,9 @@ excluded from this visualization.")),
       br(),
       h6("Chart 12"),
       img(src='Picture2.png',width="50%"),
+      br(),
+      h6("For reference:"),
+      img(src='rat.png',),
       br(),
       br(),
       p(class = "padding", align = "left", "For required text analysis, we have again referred to the 2020 rodent related 311 reports, specifically on
