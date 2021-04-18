@@ -237,7 +237,7 @@ ui <- fluidPage(
         
         #plotlyOutput("cityViz", height = 300),
   
-        plotlyOutput("yearViz", height = 190),
+        plotlyOutput("yearViz", height = 210),
         plotlyOutput("locationViz", height = 220),
         
   
@@ -840,8 +840,8 @@ server <- function(input, output, session) {
           + ggtitle('Case status trend') +  scale_x_continuous(breaks=seq(min_year, max_year, 1))
           + theme(axis.title.y=element_blank(),
                 #axis.text.y=element_blank(),
-                axis.title.x=element_blank(),
-                axis.text.x=element_blank())
+                axis.title.x=element_blank(),)
+                #axis.text.x=element_blank())
           + theme(legend.title = element_blank()) 
           #+ theme(legend.position="left")
           #+ labs(color='Status') 
