@@ -64,27 +64,22 @@ rat_sightings$longitude <- rat_sightings$Longitude
 #rat_sightings_buroughs <- c("BROOKLYN", "QUEENS","STATEN ISLAND")
 
 
-# pratishta's code ----------------------------------------------------------
 
 
+
+
+# PRATISHTA'S DATA FETCH -------------------------------------------------------
 # read in the main csv file
 rat_data<-read.csv("data/rat_data.csv")
 rat_data <- rat_data %>%
   mutate(Borough = str_to_title(rat_data$Borough))
 tonnage_data<-read.csv("data/dsny_boro_tonnage.csv", stringsAsFactors = FALSE)
-#head(rat_data)
-#head(tonnage_data)
-
-
 
 ton_date <- tonnage_data %>%
   mutate(MONTH = paste(MONTH, " / 01")) %>%
   mutate(MONTH = as.Date(MONTH, format = '%Y / %m / %d')) %>%
   filter(MONTH > as.Date('2020-01-01', '%Y-%m-%d'), MONTH < as.Date('2021-03-01', '%Y-%m-%d')) %>%
   arrange(desc(MONTH))
-#ton_date
-
-
 
 rat_date <- rat_data %>%
   mutate(Created.Date = as.Date(Created.Date, "%m/%d/%Y")) %>%
@@ -96,17 +91,32 @@ rat_date <- rat_data %>%
   tally() %>%
   filter(Created.Date > as.Date('2020-01-01', '%Y-%m-%d'), Created.Date < as.Date('2021-03-01', '%Y-%m-%d')) %>%
   arrange(desc(Created.Date))
-#rat_date
-
 
 rat_ton_date <- merge(rat_date, ton_date, by.x = c("Created.Date", "Borough"), by.y = c("MONTH", "BOROUGH")) %>%
   mutate(rate = n / (REFUSETONSCOLLECTED / 100))
-#rat_ton_date
+# END OF PRATISHTA'S DATA FETCH ------------------------------------------------
 
+# PRATISHTA'S CODE -------------------------------------------------------------
 
+# community district conversion functions 
 
-
-
+convertBoroCDToDistrict <- function(borocd) {
+  sapply(borocd, function(borocd) { 
+    boro_ch = as.character(borocd) 
+    boro_n = substr(boro_ch, 1, 1)
+    cd_n = substr(boro_ch, 2, 3)
+    
+    boro = case_when (boro_n == '1' ~ 'MN',
+                      boro_n == '2' ~ 'BX',
+                      boro_n == '3' ~ 'BK',
+                      boro_n == '4' ~ 'QW',
+                      boro_n == '5' ~ 'SI'
+    )
+    
+    ans <- paste(boro, cd_n, sep="")
+    return (ans)
+  })
+}
 
 convertToShpDistrict <- function(com_district) {
   sapply(com_district, function(com_district) { 
@@ -122,31 +132,21 @@ convertToShpDistrict <- function(com_district) {
   })
 }
 
-
+# reading in data and modify string format of community district column
 full_tonnage <-read.csv("sanitation_data/dsny_full_tonnage.csv", stringsAsFactors = FALSE)
 full_tonnage <- full_tonnage %>%
   mutate(district =  paste(full_tonnage$COMMUNITYDISTRICT, str_to_upper(full_tonnage$BOROUGH)))
 
-
-
-head(full_tonnage)
-
-
-
 district =  paste(full_tonnage$COMMUNITYDISTRICT, str_to_upper(full_tonnage$BOROUGH))
 
-
+# creating data to be mapped
 ton_map <- full_tonnage %>%
   mutate(community_district = convertToShpDistrict(district)) %>% 
   group_by(community_district) %>%
   summarise(total_ton = sum(REFUSETONSCOLLECTED))
 ton_map
 
-
-
-
 community_district <- paste(rat_data$Community.Board, str_to_upper(rat_data$Community.Board))
-
 
 rat_map <- rat_data %>%
   mutate(community_district = convertToShpDistrict(community_district)) %>% 
@@ -154,137 +154,39 @@ rat_map <- rat_data %>%
   tally()
 rat_map
 
-
-
-# ton_col <- unique(full_tonnage[c("district")]) 
-# ratcol <- unique(rat_data[c("Community.Board")]) %>%
-
-
-
 rat_borough <- rat_data %>% 
   group_by(Borough) %>%
   tally()
 rat_borough
-
-
 
 ton_boro <- tonnage_data %>%
   group_by(BOROUGH) %>%
   summarise(total_ton = sum(REFUSETONSCOLLECTED))
 ton_boro
 
-
-
 rat_ton <- left_join(rat_borough, ton_boro, by = c("Borough" = "BOROUGH"))
-
 
 rat <- ggplot(rat_ton, aes(y=n, x=Borough)) + 
   geom_bar(position="dodge", stat="identity")
-#rat
-
 
 ton <- ggplot(rat_ton, aes(y=total_ton, x=Borough)) + 
   geom_bar(position="dodge", stat="identity")
-#ton
 
-
-
-# dual y axis 
-# A few constants
-temperatureColor <- "#69b3a2"
-priceColor <- rgb(0.2, 0.6, 0.9, 1)
-f <- ggplot(rat_ton, aes(x=Borough)) +
-  
-  geom_bar( aes(y=n), stat='identity', fill=temperatureColor) + 
-  geom_bar( aes(y=total_ton), stat='identity', fill=priceColor) +
-  
-  scale_y_continuous(
-    
-    # Features of the first axis
-    name = "Number of Rat Sightings",
-    
-    # Add a second axis and specify its features
-    sec.axis = sec_axis(~ . + 10000000000000000, name="Metric Ton of Waste ")
-  ) + 
-  
-  # theme_ipsum() +
-  theme(
-    axis.title.y = element_text(color = temperatureColor, size=13),
-    axis.title.y.right = element_text(color = priceColor, size=13)
-  ) +
-  ggtitle("Rat Sightings and Sanitation Waste (Feb 2020 - Feb 2021)")
-
-
-
-#f
-
-
-
+# map data
 nyc <- readOGR("sanitation_data/CommunityDistricts/.", "geo_export_d81daad1-2b49-44c3-81d4-72436a58def3")
 
-
 nyc_sp <- spTransform(nyc, CRS("+proj=longlat +datum=WGS84"))
-
-
-
-convertBoroCDToDistrict <- function(borocd) {
-  sapply(borocd, function(borocd) { 
-    boro_ch = as.character(borocd) 
-    boro_n = substr(boro_ch, 1, 1)
-    cd_n = substr(boro_ch, 2, 3)
-    
-    print(boro_ch)
-    
-    boro = case_when (boro_n == '1' ~ 'MN',
-                      boro_n == '2' ~ 'BX',
-                      boro_n == '3' ~ 'BK',
-                      boro_n == '4' ~ 'QW',
-                      boro_n == '5' ~ 'SI'
-    )
-    
-    # print(boro)
-    ans <- paste(boro, cd_n, sep="")
-    # print(ans)
-    return (ans)
-  })
-}
-
-
 
 nyc_sp@data <- nyc_sp@data %>%
   mutate(community_district = convertBoroCDToDistrict(boro_cd))
 nyc_sp@data
 
-
 nyc_sp@data <- left_join(nyc_sp@data, rat_map)
 nyc_sp@data
 
-
-
 nyc_sp@data <- left_join(nyc_sp@data, ton_map) 
 nyc_sp@data
-
-
-#nyc_sp
-
-
-
-# ggplot() + 
-#   geom_polygon(data = nyc_sp, aes(fill = n, x = ))
-# library(geojsonio)
-# spdf <- geojson_read("sanitation_data/DSNYSections/.", "DSNYSections.geojson", what = "sp")
-# spdf
-
-
-# tm_shape(nyc_sp) +
-#   tm_fill("n", title = "Rat Sightings in Community Districts")
-
-
-
-
-
-
-
+# END OF PRATISHTA'S CODE-------------------------------------------------------
 
 # shiny code
 
@@ -295,6 +197,11 @@ rat_sightings_buroughs <- as.character(unique(unlist(rat_sightings$Borough)))
 rat_sightings_case_status <- as.character(unique(unlist(rat_sightings$Status)))
 
 ui <- fluidPage(
+  fluidRow(align = "center",
+                h1("Rats and NYC: Exploratory Visualization"),
+                strong("Data Visualization (QMSS - G5063) Final Project"),
+                br(),
+                em("Group N: Brendan Mapes, Prajwal Seth, and Pratishta Yerakala"),),
   fluidRow(
     align = "center",
     headerPanel("Hello 1!"),
@@ -340,86 +247,165 @@ ui <- fluidPage(
         leafletOutput("map", height = 825),
       )
     ),
-  ),
-  fluidRow(
-    br(),
-    align = "center",
-    headerPanel("Hello please change this"),
-    p("p creates a paragraph of text."),
-    p("A new p() command starts a new paragraph. Supply a style attribute to change the format of the entire paragraph.", style = "font-family: 'times'; font-si16pt"),
-    strong("strong() makes bold text."),
-    em("em() creates italicized (i.e, emphasized) text."),
-    br(),
-    code("code displays your text similar to computer code"),
-    div("div creates segments of text with a similar style. This division of text is all blue because I passed the argument 'style = color:blue' to div", style = "color:blue"),
-    br(),
-    p("span does the same thing as div, but it works with",
-      span("groups of words", style = "color:blue"),
-      "that appear inside a paragraph."),
-
-    plotlyOutput("pratishta1", width = "70%"),
-    
-    headerPanel("Hello please change this2"),
-    p("p creates a paragraph of text.2"),
-    
-    br(),
-    plotlyOutput("pratishta2", width = "70%"),
-    
-    headerPanel("Hello please change this3"),
-    p("p creates a paragraph of text.3"),
-    
-    br(),
-    plotlyOutput("pratishta3", width = "70%"),
-    
-    headerPanel("Hello please change this4"),
-    p("p creates a paragraph of text4."),
-    
-    br(),
-    plotlyOutput("pratishta4", width = "50%"),
-    
-    headerPanel("Hello please change this5"),
-    p("p creates a paragraph of text.5"),
-    
-    br(),
-    plotlyOutput("pratishta5", width = "50%"),
-
-    br(),
-    headerPanel("Hello please change this6"),
-    p("p creates a paragraph of text.6"),
-    
-    plotlyOutput("pratishta6", width = "50%"),
-  ),
-  fluidRow(
+    # PRATISHTA'S WRITEUP --------------------------------------------------------
+    fluidRow(
       align = "center",
-      headerPanel("edit this 7!"),
-      p("text 7"),
-      br(),),
-  fluidRow(
-      tmapOutput("pratishta7", width = "100%"),
-  ),
-  fluidRow(
-      align = "center",
-      headerPanel("edit this 8"),
-      p("text 8"),
+      h2("Rat Sightings and Sanitation Waste by Borough"),
+      h3("Pratishta Yerakala"),
       br(),
-  ),
-  fluidRow(
-      tmapOutput("pratishta8", width = "100%"),
-  ),
-  fluidRow(
+      
+    ),
+    fluidRow(
+      tags$style(".padding {
+                            margin-left:30px;
+                            margin-right:30px;
+                          }"),
+      tags$style(".leftAlign{float:left;}"),
+      align = "left",
+      div(class='padding',
+          h4("Data used:"),
+          h5(a("Rat sightings", href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9"), h6("filtered for rodent sightings between Feb 2020 and Feb 2021.")),
+          h5(a("DSNY Monthly Tonnage", href="https://data.cityofnewyork.us/City-Government/DSNY-Monthly-Tonnage-Data/ebb7-mvp5"), h6("filtered for months between Feb 2020 and Feb 2021.")),
+          h5(a("NYC Community Districts Shapefile", href="https://data.cityofnewyork.us/City-Government/Community-Districts/yfnk-k7r4")),
+      ),
+      
+      div(class='padding', 
+          h4("Background:"),
+          p("The large rodent population in New York City is no secret. Rats have been
+      associated with the city for a long time whether it's from the famous", a('pizza rat', href='https://knowyourmeme.com/memes/pizza-rat'),
+            "or to the rising concern from residents who have noticed changes since the COVID-19 pandemic.
+      Many businesses and normally occurring procedures have been slowed down or 
+      halted completely. One such example in particular with the Department of 
+      Sanitation of NY (DSNY) where limited resources and budget cuts since the 
+      pandemic have caused an", a("increased amount of litter and waste production", href="https://patch.com/new-york/new-york-city/city-state-leaders-decry-sanitation-setback-trash-piles"),
+            "."),
+      )
+    ),
+    fluidRow(
       align = "center",
-      headerPanel("edit this 9"),
-      p("text 9"),
+      div(class='padding',
+          h4(align = "left", "Visualizations:"),
+      ),
+      
+      # descriptive charts 
+      h3("Total Number of Rat Sightings (2020-2021)"),
+      h6("Chart 1"),
+      plotlyOutput("pratishta4", width = "50%"),
       br(),
-      plotOutput("pratishta9", width = "50%", height = "550px"),
-      br()
+      
+      h3("Total Waste Produced (2020-2021)"),
+      h6("Chart 2"),
+      plotlyOutput("pratishta5", width = "50%"),
+      br(),
+      
+      p(class = "padding", align = "left", "We can see  in Chart 1 that Brooklyn produces the most tons of waste followed by
+      Queens, and then by Bronx and Manhattan. Staten Island is last with the 
+      least amount of waste. Chart 2 shows the number of rat sightings per 
+      borough and naturally, we have Brooklyn at the top with around 6,000 
+      sightings. But Instead of Queens, Manhattan follows with most rat s
+      ightings. Then Queens and Bronx. From here it seems that Staten Island and
+      Bronx are boroughs that have some what proportional sightings to waste 
+      produced. However, though Queens produces a lot of waste, it does not have
+      nearly the same rate of rat sightings. Conversely, Manhattan doesn't quite
+      produce the same amount of waste as Queens but seems to have far more rat 
+      sightings. Brooklyin is consistenly infested."),
+      
+      # time series charts
+      h3("Waste per Month (2020-2021)"),
+      h6("Chart 3"),
+      plotlyOutput("pratishta1", width = "70%"),
+      br(), 
+      
+      h3("Rat Sightings per Month (2020-2021)"),
+      h6("Chart 4"),
+      plotlyOutput("pratishta2", width = "70%"),
+      br(),
+      
+      h3("Rate of Rats per Waste Ton per Month"),
+      h6("Chart 5"),
+      plotlyOutput("pratishta3", width = "70%"),
+      br(),
+      
+      p(class = "padding", align = "left", "Charts 3 to 5 show a time series line graphs. Chart 3 shows the tons of 
+      waste per month generated by each borough. It seems that around March and 
+      April of 2020 there was a change in the trend. Though the waste was 
+      rising, it flattened out - or even fell like with Manhattan for example
+      - between March and April of 2020. But after april there was a more mellow
+      rise and then gentle decline closer to Fall of 2020 and early 2021. This 
+      exploratory chart is good to possibly check out Manhattan and why the 
+      waste production went down. Perhaps for restaurants closing?"),
+      p(class = "padding", align = "left", "Chart 4 shows that all boroughs saw an increase in rat sightings, 
+      especially Brooklyn. It did seem to peak around summer of 2020 and decline
+      again to almost normal rates. These sightings might be due to the 
+      sanitation departments' limits as mentioned earlier."),
+      p(class = "padding", align = "left", "Chart 5 looks at the 'rate' at which a rat sighting is possible for every
+      kilo-ton of waste produced in each borough per month. It seems that these 
+      rates also follow a similar path of an increase around April 2020 and then
+      a peak in summer of 2020 and then a mellow decline. However Manhattan's 
+      rate shot up for early 2021 with around 0.75 (sightings per ton of waste) 
+      to 1.5 (sightings per ton of waste). Perhaps this could be due to frequent
+      testings, vaccinations, and re-opening of restaurants (producing more 
+      waste)?"),
+      
+      # maps
+      h3("Number of Rat Sightings per Month"),
+      h6("Chart 6"),
+      tmapOutput("pratishta7", width = "80%"),
+      br(),
+      
+      
+      h3("Waste Produced in Tons"),
+      h6("Chart 7"),
+      tmapOutput("pratishta8", width = "80%"),
+      br(),
+      
+      h3("Rat Sightings and Waste Produced By Community District"),
+      h6("Chart 8"),
+      plotOutput("pratishta9", width = "60%"),
+      br(),
+      
+      p(class = "padding", align = "left", "Here we show choropleth maps of NYC by
+      community district. Community district as the geographical feature here is
+      because DSNY also records their information with that feature. It seems 
+      that there is one community districte that's seeing a severe rise in rat 
+      sightings (BK03). It may be worth it to take a closer look at that 
+      particular district if analysis or further studie are done."),
+      p(class = "padding", align = "left", "As expected it looks like Queens 
+      produces a massive amount of waste and the particular districts are 
+      highlighted in deep red (100,000 - 120,000 tons category). And though 
+      Brooklyn also produces a lot of waste it seems to be spread out amongst 
+      the community districts."),
+      p(class = "padding", align = "left", "Chart 8 depicts a bivariate choropleth
+      map of the community districts. This make-shift rendering of a map using 
+      the tm_map package is from", a("this currently open issue from the tmap GitHub
+      repsitory", href="https://github.com/mtennekes/tmap/issues/183#issuecomment-670554921"),
+        ". As the districts become more blue in color, the more right sightings 
+      that have been reported in that district. The more purple a district, the 
+      more amount of waste produced there. As the color goes to indigo, there's 
+      a high rat sighting and a high waste production (a high high category if 
+      further spatial dependence analysis was conducted). Light grey represents 
+      few rat sightings and little waste production (a 'low low' again for further
+      spatial research). This map demonstrates that hough there are high rat 
+      sightings in downtown Manhattan and parts of Brooklyn, it's not 
+      necessarily tied to waste production. In the same way, the outer boroughs 
+      have a huge waste production but not many rat sightings. But there are 
+      some districts (indigo) that do exhibit both features in high amounts. 
+      This exploratory data visulaization provides the insight to further look 
+      in those districts.")
+    ),
+    # END OF PRATISHTA'S WRITEUP -------------------------------------------------
   ),
 )
 
-
+  
 # code for generating the plots  -----------------------------------------------------------------
 
 server <- function(input, output, session) {
+  
+
+# prajwal's code for generating interactive map backend -------------------
+
+  
 
   # points <- eventReactive(input$recalc, {
   #   cbind(rat_sightings_sample$latitude, rat_sightings_sample$longitude)
@@ -884,10 +870,8 @@ server <- function(input, output, session) {
 
   
 
-# pratishta's viz ---------------------------------------------------------
 
-  
-  
+  # PRATISHTA'S VISUALIZATIONS -------------------------------------------------
   output$pratishta1 <- renderPlotly({
     p <- ggplot(rat_ton_date, aes(x=Created.Date, y=REFUSETONSCOLLECTED)) +
       geom_line(aes(color = Borough)) +
@@ -896,7 +880,7 @@ server <- function(input, output, session) {
       ylab("Weight of Waste (Tons)")
     p
   })
-
+  
   output$pratishta2 <- renderPlotly({
     p <- ggplot(rat_ton_date, aes(x=Created.Date, y=n)) +
       geom_line(aes(color = Borough)) +
@@ -905,7 +889,7 @@ server <- function(input, output, session) {
       ylab("Number of rat sightings")
     p
   })
-
+  
   output$pratishta3 <- renderPlotly({
     p <- ggplot(rat_ton_date, aes(x=Created.Date, y=rate)) +
       geom_line(aes(color = Borough)) +
@@ -916,43 +900,38 @@ server <- function(input, output, session) {
   })
   
   output$pratishta4 <- renderPlotly({
-    ton
+    ton +
+      xlab("Boroughs") +
+      ylab("Weight of Waste (Tons)")
     
   })
   
   output$pratishta5 <- renderPlotly({
-    rat
+    rat +
+      xlab("Boroughs") +
+      ylab("Number of Rat Sightings")
     
   })
-  
-  
-  
-  output$pratishta6 <- renderPlotly({
-    f
-
-  })
-  
-  
   
   output$pratishta7 <- renderTmap({
     ## ------------------------------------------------------------------------
     tm_shape(nyc_sp) +
       tm_fill("n", title = "Rat Sightings in Community Districts")+tm_view(set.view = c(-73.98928, 40.70042,10))
-
-
+    
+    
   })
-
+  
   output$pratishta8 <- renderTmap({
-
+    
     ## ------------------------------------------------------------------------
     tm_shape(nyc_sp) +
       tm_fill("total_ton", title = "Tones of Waste and Rat Sightings by DSNY Districts")+tm_view(set.view = c(-73.98928, 40.70042,10))
-
-
-
-
+    
+    
+    
+    
   })
-
+  
   output$pratishta9 <- renderPlot({
     ## ------------------------------------------------------------------------
     legend_creator = function(col.regions, xlab, ylab, nbins){
@@ -966,27 +945,27 @@ server <- function(input, output, session) {
       class1 = suppressWarnings(findCols(classIntervals(c(x[[var1]]),
                                                         n = nbins,
                                                         style = style)))
-
+      
       class2 = suppressWarnings(findCols(classIntervals(c(x[[var2]]),
                                                         n = nbins,
                                                         style = style)))
-
+      
       x$new_class = class1 + nbins * (class2 - 1)
       return(x)
     }
-
-
+    
+    
     ## ------------------------------------------------------------------------
     nyc_cd <- nyc_sp
-
-
+    
+    
     ## ------------------------------------------------------------------------
     nyc_cd = add_new_var(nyc_cd,
                          var1 = "n",
                          var2 = "total_ton",
                          nbins = 3)
-
-
+    
+    
     ## ------------------------------------------------------------------------
     bilegend = legend_creator(stevens.pinkblue(n = 9),
                               xlab = "rats",
@@ -1001,18 +980,13 @@ server <- function(input, output, session) {
       tm_fill("new_class", style = "cat", palette = stevens.pinkblue(n = 9), legend.show = FALSE) +
       tm_layout(legend.show = FALSE)
     grid.newpage()
-    vp = viewport(x = 0.31, y = 0.75, width = 0.25, height = 0.25)
+    vp = viewport(x = 0.37, y = 0.75, width = 0.25, height = 0.25)
     print(bimap, vp = viewport())
     pushViewport(vp)
     print(bilegend, newpage = FALSE, vp = vp)
   })
   
-
-
-  
-  
-
-  
-  
+  # END OF PRATISHTA'S VISUALIZATIONS ------------------------------------------
 }
+
 shinyApp(ui = ui, server = server)
