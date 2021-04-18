@@ -220,7 +220,7 @@ ui <- fluidPage(
   fluidRow(style='margin-right:0px;',
     sidebarLayout(
       sidebarPanel(width = 6, style='margin-right:0px;',
-        sliderInput("num_sample", label = h4("Select number of samples"), min = 1,
+        sliderInput("num_sample", label = h4("Select number of random samples"), min = 1,
                                max = nrow(rat_sightings), value = 10000, step = 1000),
         
         sliderInput("year_input", label = h4("Select years"), min = 2010,
@@ -350,14 +350,21 @@ ui <- fluidPage(
       # maps
       h3("Number of Rat Sightings per Month"),
       h6("Chart 6"),
-      tmapOutput("pratishta7", width = "80%"),
+    ),
+    fluidRow(
+      tmapOutput("pratishta7", width = "100%"),
       br(),
-      
-      
+    ),
+    fluidRow(align = "center",
       h3("Waste Produced in Tons"),
       h6("Chart 7"),
-      tmapOutput("pratishta8", width = "80%"),
+    ),
+    fluidRow(
+      tmapOutput("pratishta8", width = "100%"),
       br(),
+    ),
+    fluidRow(
+      align = "center",
       
       h3("Rat Sightings and Waste Produced By Community District"),
       h6("Chart 8"),
@@ -551,12 +558,12 @@ server <- function(input, output, session) {
         tmp <- tmp[order(-tmp$n),]
         tmp <- tmp[1:5,]
         ggplotly(tooltip = c("n"),
-          ggplot(tmp, aes(x=Location.Type, y=n)) + geom_bar(stat="identity", aes(fill = Location.Type)) + ylab("Visible location types") +
+          ggplot(tmp, aes(x=Location.Type, y=n)) + geom_bar(stat="identity", aes(fill = Location.Type)) + ggtitle('Visible location types') + ylab("Visible location types") +
             theme(axis.title.y=element_blank(),
                   #axis.text.y=element_blank(),
                   axis.title.x=element_blank(),
                   axis.text.x=element_blank(),
-                  axis.ticks.x=element_blank()) + labs(fill = "Visible location types")
+                  axis.ticks.x=element_blank()) + labs(fill = "Visible location types") + coord_flip() + theme(legend.position = "none")
         )
       })
       
@@ -830,7 +837,14 @@ server <- function(input, output, session) {
         p_years <- ggplotly(
           ggplot(data=plot_this, aes(x=Year, y=Freq)) + geom_line(aes(color=case_status))
           #+ scale_colour_manual(name = 'Case status',values =c('green'='green','cadetblue' = 'cadetblue', 'orange'='orange', 'darkred'='darkred'), labels = c("closed","in progress", "assigned",'pending'))
-          + ylab('Trend in visible area') +  scale_x_continuous(breaks=seq(min_year, max_year, 1)) + labs(color='Status') 
+          + ggtitle('Case status trend') +  scale_x_continuous(breaks=seq(min_year, max_year, 1))
+          + theme(axis.title.y=element_blank(),
+                #axis.text.y=element_blank(),
+                axis.title.x=element_blank(),
+                axis.text.x=element_blank())
+          + theme(legend.title = element_blank()) 
+          #+ theme(legend.position="left")
+          #+ labs(color='Status') 
           +
             theme(axis.title.x=element_blank())
           
