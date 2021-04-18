@@ -1,0 +1,45 @@
+---
+title: "Wordcloud"
+author: "Brendan Mapes"
+date: "4/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+library(wordcloud)
+library(png)
+library(ggwordcloud)
+library(tidytext)
+library(readr)
+library(png)
+setwd("~/Bayesian")
+manhattan_311b <- read.csv("manhattan311.csv")
+manhattan_311b <- manhattan_311b %>% filter(Complaint.Type != "Noise = Street/Sidewalk" & Complaint.Type != "Noise - Residential" & Complaint.Type != "HEAT/HOT WATER" & Complaint.Type != "Illegal Parking" & Complaint.Type != "Non-Emergency Police Matter" & Complaint.Type != "Noise" & Complaint.Type != "Noise - Vehicle" & Complaint.Type != " Noise - Commercial")
+
+descriptors <- manhattan_311b %>% select(Descriptor)
+descriptors <- unnest_tokens(descriptors, word, Descriptor)
+descriptors <- count(descriptors, word) 
+
+descriptors2 <- filter(descriptors, n > 2000)
+
+col <- c(ifelse(descriptors2$word == "pests" | descriptors2$word == "rat" | descriptors2$word == "sighting" | descriptors2$word == "rodents", "red", "black"))
+descriptors3 <- cbind(descriptors2, col)
+descriptors3 <- filter(descriptors3, word != "n" & word != "a" & word != "not" & word != "business" & word != "no" & word!= "compliance" & word != "or" & word != "in" & word != "of" & word!= "to" & word!= "non" & word!= "on" & word != "has" & word!= "for")
+setwd("~/Bayesian")
+img <- readPNG("rat.png")
+descriptors3 <- descriptors3 %>% filter(word != "loud" & word!= "music" & word != "party")
+set.seed(14)
+
+(wordcloud1 <- ggplot(descriptors3, aes(label=word, size=n, color=col)) + geom_text_wordcloud_area(mask=img, rm_outside = TRUE) + scale_size_area(max_size=5) + theme_classic())
+
+
+(wordcloud2 <- ggplot(descriptors3, aes(label=word, size=n, color=col)) + geom_text_wordcloud_area() + scale_size_area())
+
+```
+
+
+
+
