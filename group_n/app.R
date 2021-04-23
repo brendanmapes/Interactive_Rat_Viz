@@ -402,8 +402,8 @@ br(),br(),br(),
         
         #plotlyOutput("cityViz", height = 300),
   
-        plotlyOutput("yearViz", height = 210),
-        plotlyOutput("locationViz", height = 220),
+        plotlyOutput("yearViz", height = 250),
+        #plotlyOutput("locationViz", height = 220),
         
   
         #plotlyOutput("locationViz", height = 300),
@@ -1152,7 +1152,7 @@ server <- function(input, output, session) {
         }
         
         p_years <- ggplotly(
-          ggplot(data=plot_this, aes(x=Year, y=Freq)) + geom_line(aes(color=case_status))
+          ggplot(data=plot_this, aes(x=Year, y=Freq)) + geom_line(aes(color=case_status)) + geom_point(aes(colour=case_status))
           #+ scale_colour_manual(name = 'Case status',values =c('green'='green','cadetblue' = 'cadetblue', 'orange'='orange', 'darkred'='darkred'), labels = c("closed","in progress", "assigned",'pending'))
           + ggtitle('Complaint status trend') +  scale_x_continuous(breaks=seq(min_year, max_year, 1)) + theme_light()
           + theme(axis.title.y=element_blank(),
