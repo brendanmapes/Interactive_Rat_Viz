@@ -222,18 +222,27 @@ rat_311 <- read.csv("data/311_Service_Requests_from_2010_to_Present.csv")
 
 
 restaurant_borough <- count(open, Borough)
+names(restaurant_borough)[names(restaurant_borough) == "n"] <- "count"
+
 rat_borough <- count(rat_311, Borough)
 borough <- c("Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island", "none")
 rat_borough <- cbind(rat_borough, borough) %>% filter(borough!= "none")
+rat_borough <- select(rat_borough, borough, n)
+names(rat_borough)[names(rat_borough) == "n"] <- "count"
+names(rat_borough)[names(rat_borough) == "borough"] <- "Borough"
 
 inspection_bc <- inspection %>% filter(GRADE == "B" | GRADE == "C")
 inspection_count_2020 <- count(inspection_bc, BORO)
+names(inspection_count_2020)[names(inspection_count_2020) == "n"] <- "count"
+names(inspection_count_2020)[names(inspection_count_2020) == "BORO"] <- "Borough"
 
 street_seating <- filter(open, Approved.for.Roadway.Seating == "yes")
 count_street <- count(street_seating, Borough)
+names(count_street)[names(count_street) == "n"] <- "count"
 
 sidewalk_seating <- filter(open, Approved.for.Sidewalk.Seating == "yes")
 count_sidewalk <- count(sidewalk_seating, Borough)
+names(count_sidewalk)[names(count_sidewalk) == "n"] <- "count"
 
 manhattan_311 <- filter(rat_311, Borough == "MANHATTAN")
 #manhattan_311 <- read.csv("manhattan311.csv")
@@ -687,19 +696,19 @@ fluidRow(align = "center",
          
          
          h6("Chart 9"),
-         img(src='1.png',width="50%"),
+         plotlyOutput("brendan_chart1" ,width="50%"),
          br(),
          h6("Chart 10"),
-         img(src='2.png',width="50%"),
+         plotlyOutput("brendan_chart2",width="50%"),
          br(),
          h6("Chart 11"),
-         img(src='3.png',width='50%'),
+         plotlyOutput("brendan_chart3",width='50%'),
          br(),
          h6("Chart 12"),
-         img(src='4.png',width='50%'),
+         plotlyOutput("brendan_chart4",width='50%'),
          br(),
          h6("Chart 13"),
-         img(src='5.png',width='50%'),
+         plotlyOutput("brendan_chart5",width='50%'),
          br(),
          p(class = "padding", align = "left", "In all five figures, we can see that Manhattan is far above the rest of the boroughs 
                in restaurants approved for outdoor dining, in sidewalk and street dining, and B and C graded restaurants. However, it is 
@@ -1412,31 +1421,26 @@ server <- function(input, output, session) {
 
   # brendan's viz -----------------------------------------------------------
 
-  output$brendan_chart1 <- renderPlot({
-    
-    plot1 <- ggplot() +theme_light(base_size = 18) + geom_bar(data=rat_borough, aes(x=borough, y=n), stat="identity", color="black", fill="darkred") + labs(title="2020 Rodent reports") + ylab("Number of 311 calls\n") + xlab("\nBorough")  + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7)) 
-    
-    plot2 <- ggplot() + theme_light(base_size = 18)+geom_bar(data=restaurant_borough, aes(x =Borough, y= n), stat="identity", color="black", fill = "darkorange") + labs(title="Outdoor restaurants") + ylab("Applications approved\n") + xlab("\nBorough") + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) + theme(axis.text.x = element_text(angle = 40, vjust=.7))
-    
-    p_tmp1 <- grid.arrange(plot1, plot2, ncol=2)
-    print(p_tmp1)
-    #subplot(plot1, plot2,titleX = TRUE, titleY = TRUE,margin = 0.07)
+  output$brendan_chart1 <- renderPlotly({
+    plot1 <-ggplot() + geom_bar(data=rat_borough, aes(x=Borough, y=count), stat="identity", fill=rainbow(n=5)) + ggtitle("2020 rodent reports") + ylab("Number of 311 calls\n") + xlab("\nBorough") + theme_light() + theme(plot.title=element_text(face="bold"), axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold"), legend.position="none") +  theme(axis.text.x = element_text(angle = 40, vjust=.7)) 
+    plot1
   })
-  
-  output$brendan_chart2 <- renderPlot({
-    plot3 <- ggplot() + theme_light(base_size = 18) + geom_bar(data=inspection_count_2020, aes(x=BORO, y=n), stat="identity", color="black", fill="yellow") + ggtitle("B or C inspection scores") + ylab("Restaurants\n") + xlab("\nBorough")  + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
-    
-    
-    plot4 <- ggplot() + theme_light(base_size = 18) + geom_bar(data=count_street, aes(x=Borough, y=n), stat="identity", color="black", fill="lightblue") + labs(title="Street dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
-    
-    plot5 <- ggplot() + theme_light(base_size = 18) + geom_bar(data=count_sidewalk, aes(x=Borough, y=n), stat="identity", color="black", fill= "tan") + labs(title="Sidewalk dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme(axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
-    
-    p_tmp2 <- grid.arrange(plot4, plot5, ncol=2)
-    print(p_tmp2)
-    #subplot(plot4,plot5,titleX = TRUE, titleY = TRUE,margin = 0.07, which_layout = "")
-    
+  output$brendan_chart2 <- renderPlotly({
+    plot2 <- ggplot() + geom_bar(data=restaurant_borough, aes(x =Borough, y= count), stat="identity", fill=rainbow(n=5)) + ggtitle("Outdoor restaurants") + ylab("Applications approved\n") + xlab("\nBorough") + theme_light() + theme(plot.title=element_text(face="bold"), axis.title.x=element_text(face="bold"), legend.position="none", axis.title.y=element_text(face="bold")) + theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    plot2
   })
-  
+  output$brendan_chart3 <- renderPlotly({
+    plot3 <- ggplot() + geom_bar(data=inspection_count_2020, aes(x=Borough, y=count), stat="identity", fill=rainbow(n=5)) + ggtitle("Restaurants w/ B or C inspection scores") + ylab("Restaurants\n") + xlab("\nBorough") + theme_light() + theme(plot.title=element_text(face="bold"), axis.title.x=element_text(face="bold"), legend.position="none", axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    plot3
+  })
+  output$brendan_chart4 <- renderPlotly({
+    plot4 <- ggplot() + geom_bar(data=count_street, aes(x=Borough, y=count), stat="identity", fill=rainbow(n=5)) + ggtitle("Street dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme_light() + theme(plot.title=element_text(face="bold"), axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold"), legend.position="none") +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    plot4
+  })
+  output$brendan_chart5 <- renderPlotly({
+    plot5 <- ggplot() + geom_bar(data=count_sidewalk, aes(x=Borough, y=count), stat="identity", fill=rainbow(n=5)) + ggtitle("Sidewalk dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme_light() + theme(plot.title=element_text(face="bold"), axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold"), legend.position="none") +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+    plot5
+  })
   
   output$brendan_map <- renderLeaflet({
 
