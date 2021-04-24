@@ -364,7 +364,7 @@ br(),br(),br(),
            years, boroughs, and case status (however, due to processing constraints on shinyapps.io,
            the website will crash if you set the number of samples too high). The map on the left will dynamically update as you
            change the filters (or will not update if there is no data to display after the filters are applied).
-           The plots for the trend in complaint status and location types also update according to the
+           The plot for the trend in complaint status also updates according to the
            rat complaints that are visible in the map. Upon zooming into the map, you will see that the color of the
            marker for each complaint is set according to the complaint status (refer to the legend of the map). 
            Also provided is a tooltip displaying the complaint's created date, closed date, address, status, and
