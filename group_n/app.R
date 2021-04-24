@@ -604,28 +604,117 @@ increase in rat sightings. We explore this possibility a bit further in the next
     
     # descriptive charts 
     
-    fluidRow(align = "center",
-             br(),
-             h3("NYC311 rodent complaints in 2020 and number of restaurants by type"),
-             h6("Chart 9"),br(),
-             plotOutput("brendan_chart1", width = "80%"),
-             plotOutput("brendan_chart2", width = "80%"),
-             br(),
-             br(),
-    p(class = "padding", align = "left", "In all four figures, we can see that Manhattan is far above the rest of the boroughs in restaurants
-approved for outdoor dining, in sidewalk and street dining. However, it is Brooklyn that is far above the
-rest of the boroughs in rodent reports in 2020. This suggests that perhaps another factor is contributing
-to the rat problem in the Brooklyn borough. If restaurants were fully to blame for it’s rat problem, we
-would expect to see it having high numbers of restaurants approved for outdoor street and sidewalk
-dining, a number comparable to the borough of Manhattan. 
+#     fluidRow(align = "center",
+#              br(),
+#              h3("NYC311 rodent complaints in 2020 and number of restaurants by type"),
+#              h6("Chart 9"),br(),
+#              plotOutput("brendan_chart1", width = "80%"),
+#              plotOutput("brendan_chart2", width = "80%"),
+#              br(),
+#              br(),
+#     p(class = "padding", align = "left", "In all four figures, we can see that Manhattan is far above the rest of the boroughs in restaurants
+# approved for outdoor dining, in sidewalk and street dining. However, it is Brooklyn that is far above the
+# rest of the boroughs in rodent reports in 2020. This suggests that perhaps another factor is contributing
+# to the rat problem in the Brooklyn borough. If restaurants were fully to blame for it’s rat problem, we
+# would expect to see it having high numbers of restaurants approved for outdoor street and sidewalk
+# dining, a number comparable to the borough of Manhattan. 
+# 
+# The first bar plot displays the number of rodent related 311 reports in the year 2020 by borough.
+# Brooklyn leads the way with well over 10,000 rodent related calls in the year, while the next closest
+# borough, Manhattan, only has about 8,000 rodent related calls in the year. In the bar plots related to
+# restaurants, we see Manhattan leads the way across the board. In the restaurants with outdoor dining,
+# sidewalk and street dining, Manhattan has twice as many restaurants than any other borough. Because
+# of this vast difference in the number of restaurants in Manhattan compared to the other boroughs, we
+# will narrow our focus to Manhattan in the next visualization."),),
 
-The first bar plot displays the number of rodent related 311 reports in the year 2020 by borough.
-Brooklyn leads the way with well over 10,000 rodent related calls in the year, while the next closest
-borough, Manhattan, only has about 8,000 rodent related calls in the year. In the bar plots related to
-restaurants, we see Manhattan leads the way across the board. In the restaurants with outdoor dining,
-sidewalk and street dining, Manhattan has twice as many restaurants than any other borough. Because
-of this vast difference in the number of restaurants in Manhattan compared to the other boroughs, we
-will narrow our focus to Manhattan in the next visualization."),),),
+fluidRow(align = "center",
+         br(),
+         br(),
+         br(),
+         
+         # code for generating these plots
+
+         #   title: "brendan2"
+         # author: "Brendan Mapes"
+         # date: "4/17/2021"
+         # output: html_document
+         # ---
+         #   
+         #   ```{r setup, include=TRUE}
+         # knitr::opts_chunk$set(echo = TRUE)
+         # library(ggplot2)
+         # library(ggthemes)
+         # library(gridExtra)
+         # library(dplyr)
+         # library(plotly)
+         # open <- read.csv("Open_Restaurant_Applications.csv")
+         # inspection <- read.csv("DOHMH_New_York_City_Restaurant_Inspection_Results.csv")
+         # rat_311 <- read.csv("311_Service_Requests_from_2010_to_Present.csv")
+         # restaurant_borough <- count(open, Borough)
+         # names(restaurant_borough)[names(restaurant_borough) == "n"] <- "count"
+         # rat_borough <- count(rat_311, Borough)
+         # borough <- c("Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island", "none")
+         # rat_borough <- cbind(rat_borough, borough) %>% filter(borough!= "none")
+         # rat_borough <- select(rat_borough, borough, n)
+         # names(rat_borough)[names(rat_borough) == "n"] <- "count"
+         # names(rat_borough)[names(rat_borough) == "borough"] <- "Borough"
+         # inspection_bc <- inspection %>% filter(GRADE == "B" | GRADE == "C")
+         # inspection_count_2020 <- count(inspection_bc, BORO)
+         # names(inspection_count_2020)[names(inspection_count_2020) == "n"] <- "count"
+         # names(inspection_count_2020)[names(inspection_count_2020) == "BORO"] <- "Borough"
+         # street_seating <- filter(open, Approved.for.Roadway.Seating == "yes")
+         # count_street <- count(street_seating, Borough)
+         # names(count_street)[names(count_street) == "n"] <- "count"
+         # sidewalk_seating <- filter(open, Approved.for.Sidewalk.Seating == "yes")
+         # count_sidewalk <- count(sidewalk_seating, Borough)
+         # names(count_sidewalk)[names(count_sidewalk) == "n"] <- "count"
+         # plot1 <- ggplot() + geom_bar(data=rat_borough, aes(x=Borough, y=count, fill=Borough), stat="identity") + ggtitle("2020 rodent reports") + ylab("Number of 311 calls\n") + xlab("\nBorough") + theme_light() + theme(plot.title=element_text(face="bold"), axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold"), legend.position="none") +  theme(axis.text.x = element_text(angle = 40, vjust=.7)) 
+         # plot2 <- ggplot() + geom_bar(data=restaurant_borough, aes(x =Borough, y= count, fill =Borough), stat="identity") + ggtitle("Outdoor restaurants") + ylab("Applications approved\n") + xlab("\nBorough") + theme_light() + theme(plot.title=element_text(face="bold"), axis.title.x=element_text(face="bold"), legend.position="none", axis.title.y=element_text(face="bold")) + theme(axis.text.x = element_text(angle = 40, vjust=.7))
+         # plot3 <- ggplot() + geom_bar(data=inspection_count_2020, aes(x=Borough, y=count, fill=Borough), stat="identity") + ggtitle("Restaurants w/ B or C inspection scores") + ylab("Restaurants\n") + xlab("\nBorough") + theme_light() + theme(plot.title=element_text(face="bold"), axis.title.x=element_text(face="bold"), legend.position="none", axis.title.y=element_text(face="bold")) +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+         # plot4 <- ggplot() + geom_bar(data=count_street, aes(x=Borough, y=count, fill=Borough), stat="identity") + ggtitle("Street dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme_light() + theme(plot.title=element_text(face="bold"), axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold"), legend.position="none") +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+         # plot5 <- ggplot() + geom_bar(data=count_sidewalk, aes(x=Borough, y=count, fill=Borough), stat="identity") + ggtitle("Sidewalk dining") + ylab("Approved restaurants\n") + xlab("\nBorough") + theme_light() + theme(plot.title=element_text(face="bold"), axis.title.x=element_text(face="bold"), axis.title.y=element_text(face="bold"), legend.position="none") +  theme(axis.text.x = element_text(angle = 40, vjust=.7))
+         # plot1a <- ggplotly(plot1, tooltip=c("x", "y"))
+         # plot2a <- ggplotly(plot2, tooltip=c("x", "y"))
+         # plot3a <- ggplotly(plot3, tooltip=c("x", "y"))
+         # plot4a <- ggplotly(plot4, tooltip=c("x", "y"))
+         # plot5a <- ggplotly(plot5, tooltip=c("x", "y"))
+         # plot1a
+         # plot2a
+         # plot3a
+         # plot4a
+         # plot5a
+         
+         
+         
+         h6("Chart 9"),
+         img(src='1.png',width="50%"),
+         br(),
+         h6("Chart 10"),
+         img(src='2.png',width="50%"),
+         br(),
+         h6("Chart 11"),
+         img(src='3.png',width='50%'),
+         br(),
+         h6("Chart 12"),
+         img(src='4.png',width='50%'),
+         br(),
+         h6("Chart 13"),
+         img(src='5.png',width='50%'),
+         br(),
+         p(class = "padding", align = "left", "In all five figures, we can see that Manhattan is far above the rest of the boroughs 
+               in restaurants approved for outdoor dining, in sidewalk and street dining, and B and C graded restaurants. However, it is 
+               Brooklyn that is far above the rest of the boroughs in rodent reports in 2020. This suggests that perhaps another factor is 
+               contributing to the rat problem in the Brooklyn borough. If restaurants were fully to blame for it’s rat problem, we would 
+               expect to see it having high numbers of restaurants approved for outdoor street and sidewalk dining, a number comparable to 
+               the borough of Manhattan. The first bar plot displays the number of rodent related 311 reports in the year 2020 by borough. 
+               Brooklyn leads the way with well over 10,000 rodent related calls in the year, while the next closest borough, Manhattan, only 
+               has about 8,000 rodent related calls in the year. In the bar plots related to restaurants, we see Manhattan leads the way across 
+               the board. In the restaurants with outdoor dining, sidewalk and street dining, Manhattan has twice as many restaurants than any 
+               other borough. Because of this vast difference in the number of restaurants in Manhattan compared to the other boroughs, we will 
+               narrow our focus to Manhattan in the next visualization."),br(),br(),
+),
+    
+    ),
   br(),
   fluidRow(
     tags$style(".padding {
@@ -645,7 +734,7 @@ will narrow our focus to Manhattan in the next visualization."),),),
     
     fluidRow(align = "center",
              h3("Rat sightings in 2020 overlaid on restaurant locations in Manhattan"),
-             h6("Chart 10"),),br(),
+             h6("Chart 14"),),br(),
     fluidRow(
       
       leafletOutput("brendan_map", height = 500, width = "100%"),
@@ -691,10 +780,10 @@ excluded from this visualization.")),
     fluidRow(align = "center",
              h3("Wordcloud of the descriptor variable of all NYC311 complaints in 2020"),
              br(),
-             h6("Chart 11"),
+             h6("Chart 15"),
       img(src='Capture.PNG',width="50%"),
       br(),
-      h6("Chart 12"),
+      h6("Chart 16"),
       img(src='Picture2.png',width="50%"),
       br(),
       h6("For reference:"),
@@ -711,6 +800,8 @@ wordcloud the shape of a rat. This visualization is slightly more visually appea
 same information to the reader. Rat sightings are often mentioned in the descriptor variable of the data
 set."),br(),br()
     ),
+    
+    
     # fluidRow(
     #   align = "center",
     #   plotOutput("brendan_wc1"),
