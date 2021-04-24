@@ -402,8 +402,8 @@ br(),br(),br(),
         
         #plotlyOutput("cityViz", height = 300),
   
-        plotlyOutput("yearViz", height = 210),
-        plotlyOutput("locationViz", height = 220),
+        plotlyOutput("yearViz", height = 250),
+        #plotlyOutput("locationViz", height = 220),
         
   
         #plotlyOutput("locationViz", height = 300),
@@ -710,6 +710,39 @@ presented is also from the ggwordcloud package, but with an added mask, intended
 wordcloud the shape of a rat. This visualization is slightly more visually appealing, but reveals the exact
 same information to the reader. Rat sightings are often mentioned in the descriptor variable of the data
 set."),br(),br()
+    ),
+    
+    fluidRow(align = "center",
+             br(),
+             br(),
+             br(),
+             
+             h6("Chart 13"),
+             img(src='1.PNG',width="50%"),
+             br(),
+             h6("Chart 14"),
+             img(src='2.PNG',width="50%"),
+             br(),
+             h6("Chart 15"),
+             img(src='3.PNG',width='50%'),
+             br(),
+             h6("Chart 16"),
+             img(src='4.PNG',width='50%'),
+             br(),
+             h6("Chart 17"),
+             img(src='5.PNG',width='50%'),
+             br(),
+             p(class = "padding", align = "left", "In all five figures, we can see that Manhattan is far above the rest of the boroughs 
+               in restaurants approved for outdoor dining, in sidewalk and street dining, and B and C graded restaurants. However, it is 
+               Brooklyn that is far above the rest of the boroughs in rodent reports in 2020. This suggests that perhaps another factor is 
+               contributing to the rat problem in the Brooklyn borough. If restaurants were fully to blame for it’s rat problem, we would 
+               expect to see it having high numbers of restaurants approved for outdoor street and sidewalk dining, a number comparable to 
+               the borough of Manhattan. The first bar plot displays the number of rodent related 311 reports in the year 2020 by borough. 
+               Brooklyn leads the way with well over 10,000 rodent related calls in the year, while the next closest borough, Manhattan, only 
+               has about 8,000 rodent related calls in the year. In the bar plots related to restaurants, we see Manhattan leads the way across 
+               the board. In the restaurants with outdoor dining, sidewalk and street dining, Manhattan has twice as many restaurants than any 
+               other borough. Because of this vast difference in the number of restaurants in Manhattan compared to the other boroughs, we will 
+               narrow our focus to Manhattan in the next visualization."),br(),br(),
     ),
     # fluidRow(
     #   align = "center",
@@ -1152,7 +1185,7 @@ server <- function(input, output, session) {
         }
         
         p_years <- ggplotly(
-          ggplot(data=plot_this, aes(x=Year, y=Freq)) + geom_line(aes(color=case_status))
+          ggplot(data=plot_this, aes(x=Year, y=Freq)) + geom_line(aes(color=case_status)) + geom_point(aes(colour=case_status))
           #+ scale_colour_manual(name = 'Case status',values =c('green'='green','cadetblue' = 'cadetblue', 'orange'='orange', 'darkred'='darkred'), labels = c("closed","in progress", "assigned",'pending'))
           + ggtitle('Complaint status trend') +  scale_x_continuous(breaks=seq(min_year, max_year, 1)) + theme_light()
           + theme(axis.title.y=element_blank(),
