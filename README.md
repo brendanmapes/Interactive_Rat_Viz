@@ -1,11 +1,5 @@
-In this project, we will explore in detail New York City's rat problem. New York has always dealt with a relatively high population of rats, as do many other large metropolitan areas. However, since the beginning of the COVID-19 pandemic rat sightings have been on the rise. Rats are being seen more often, during new times of day, and are acting more aggressive. Through the following visualizations we hope to find some explanation for this recent uptick in rat sightings. The way restaurants and residents handle their trash plays a large role in the survival and behavior of rats in the city. So through exploration of city sanitation data, restaurant registration data, and 311 calls in the city, we hope to find some potential explanations as to why New York's rat problem has gotten so bad.
+Here is a group project of mine completed during the first year of my graduate studies at Columbia. We created a shiny app/interactive visualization on NYC's rat problem:  https://pseth.shinyapps.io/group_n/. View the video linked below for my explanation of my personal contribution (an interactive rat sightings and restaurant information map) to this shiny app, near the end of the video (7:50) https://drive.google.com/file/d/1DoqEt_tHUvkK5rLCeg9qipON3fy5YcHW/view?usp=sharing. 
 
-
-Link to website:
-https://pseth.shinyapps.io/group_n/
-
-
-Link to presentation video: https://drive.google.com/file/d/1DoqEt_tHUvkK5rLCeg9qipON3fy5YcHW/view?usp=sharing
-
+In this project, we explored in detail New York City's rat problem. New York has always dealt with a relatively high population of rats, as do many other large metropolitan areas. However, since the beginning of the COVID-19 pandemic rat sightings have been on the rise. Rats are being seen more often, during new times of day, and are acting more aggressive. Through the following visualizations we hope to find some explanation for this recent uptick in rat sightings. The way restaurants and residents handle their trash plays a large role in the survival and behavior of rats in the city. So through exploration of city sanitation data, restaurant registration data, and 311 calls in the city, we hoped to find some potential explanations as to why New York's rat problem has gotten so bad.
 
 Team members: Pratishta Yerakala, Brendan Mapes, Prajwal Seth
